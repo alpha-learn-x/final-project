@@ -37,13 +37,13 @@ interface UserData {
 
 const Auditory: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
-    const batteryAudioRef = useRef<HTMLAudioElement>(null); // New ref for MP3
+    const batteryAudioRef = useRef<HTMLAudioElement>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-    const [answers, setAnswers] = useState<string[]>(Array(5).fill(''));
-    const [marks, setMarks] = useState<number[]>(Array(5).fill(0));
+    const [answers, setAnswers] = useState<string[]>([]);
+    const [marks, setMarks] = useState<number[]>([]);
     const [totalMarks, setTotalMarks] = useState<number>(0);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
-    const [isBatteryAudioPlaying, setIsBatteryAudioPlaying] = useState<boolean>(false); // New state for MP3
+    const [isBatteryAudioPlaying, setIsBatteryAudioPlaying] = useState<boolean>(false);
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const [userId, setUserId] = useState<string>('');
     const [username, setUsername] = useState<string>('');
@@ -52,48 +52,35 @@ const Auditory: React.FC = () => {
     const [audioError, setAudioError] = useState<boolean>(false);
     const [batteryAudioError, setBatteryAudioError] = useState<boolean>(false);
     const [language, setLanguage] = useState<string>("english");
-    const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true); // Changed default to true
+    const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
+    const [questions, setQuestions] = useState<Question[]>([]);
 
-    const questions: Question[] = [
-        {
-            id: 1,
-            text: "Listen carefully and choose the correct answer",
-            correctAnswer: "It provides electrical energy",
-            audioText: "What does a battery do in an electric circuit?",
-            options: ["It stops the current", " It lights up the bulb", "It provides electrical energy", "It cools the circuit"]
-        },
-        {
-            id: 2,
-            text: "Listen carefully and choose the correct answer",
-            correctAnswer: "Copper",
-            audioText: "Which material is a good conductor of electricity?",
-            options: ["Plastic", "Wood", "Rubber", "Copper"]
-        },
-        {
-            id: 3,
-            text: "Listen carefully and choose the correct answer",
-            correctAnswer: "Ampere",
-            audioText: "What unit is used to measure electric current?",
-            options: ["Volt", "Ampere", "Watt", "Ohm"]
-        },
-        {
-            id: 4,
-            text: "Listen carefully and choose the correct answer",
-            correctAnswer: "Glass",
-            audioText: "Which of the following is an example of an insulator?",
-            options: ["Iron", "Silver", "Glass", "Aluminum"]
-        },
-        {
-            id: 5,
-            text: "Listen carefully and choose the correct answer",
-            correctAnswer: "To stop or allow current flow",
-            audioText: "What is the function of a switch in a circuit?",
-            options: ["To increase voltage", "To stop or allow current flow", "To store energy", "To measure resistance"]
-        },
-    ];
+    // Load quiz questions from backend
+    useEffect(() => {
+        const fetchQuiz = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/questions');
+                setQuestions(response.data.questions);
+                setAnswers(Array(response.data.questions.length).fill(''));
+                setMarks(Array(response.data.questions.length).fill(0));
+            } catch (error) {
+                console.error('Error fetching quiz:', error);
+                setSaveStatus('Failed to load quiz questions');
+            }
+        };
 
-  const speakText = (text: string): void => {
+        fetchQuiz();
+
+        const userData: UserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        setUser(userData.id || '');
+        setUserId(userData.userId || '');
+        setUsername(userData.userName || '');
+        setEmail(userData.email || '');
+    }, []);
+
+    // Speak text for the current question
+    const speakText = (text: string): void => {
         if ('speechSynthesis' in window && isSoundEnabled) {
             window.speechSynthesis.cancel();
 
@@ -127,21 +114,16 @@ const Auditory: React.FC = () => {
         }
     };
 
-    // Fixed function to toggle MP3 playbook with better error handling
     const toggleBatteryAudio = (): void => {
         if (batteryAudioRef.current) {
             if (isBatteryAudioPlaying) {
                 batteryAudioRef.current.pause();
                 setIsBatteryAudioPlaying(false);
             } else {
-                // Pause any ongoing speech synthesis to avoid overlap
                 stopSpeech();
-
-                // Reset audio to beginning if it has ended
                 if (batteryAudioRef.current.ended) {
                     batteryAudioRef.current.currentTime = 0;
                 }
-
                 batteryAudioRef.current.play()
                     .then(() => {
                         setIsBatteryAudioPlaying(true);
@@ -159,11 +141,9 @@ const Auditory: React.FC = () => {
         }
     };
 
-    // Initialize audio and setup event listeners
     useEffect(() => {
         const audio = batteryAudioRef.current;
         if (audio) {
-            // Audio event listeners
             const handleLoadedData = () => {
                 console.log("Audio loaded successfully");
                 setBatteryAudioError(false);
@@ -186,18 +166,15 @@ const Auditory: React.FC = () => {
                 setIsBatteryAudioPlaying(false);
             };
 
-            // Add event listeners
             audio.addEventListener('loadeddata', handleLoadedData);
             audio.addEventListener('error', handleError);
             audio.addEventListener('ended', handleEnded);
             audio.addEventListener('play', handlePlay);
             audio.addEventListener('pause', handlePause);
 
-            // Preload the audio
             audio.preload = 'metadata';
 
             return () => {
-                // Cleanup event listeners
                 audio.removeEventListener('loadeddata', handleLoadedData);
                 audio.removeEventListener('error', handleError);
                 audio.removeEventListener('ended', handleEnded);
@@ -208,25 +185,20 @@ const Auditory: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        const userData: UserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        setUser(userData.id || '');
-        setUserId(userData.userId || '');
-        setUsername(userData.userName || '');
-        setEmail(userData.email || '');
+        if (questions.length > 0) {
+            const timer = setTimeout(() => {
+                speakText(questions[currentQuestionIndex].audioText);
+            }, 500);
 
-        const timer = setTimeout(() => {
-            speakText(questions[currentQuestionIndex].audioText);
-        }, 500);
-
-        // Cleanup MP3 audio on component unmount or question change
-        return () => {
-            clearTimeout(timer);
-            if (batteryAudioRef.current && isBatteryAudioPlaying) {
-                batteryAudioRef.current.pause();
-                setIsBatteryAudioPlaying(false);
-            }
-        };
-    }, [currentQuestionIndex]);
+            return () => {
+                clearTimeout(timer);
+                if (batteryAudioRef.current && isBatteryAudioPlaying) {
+                    batteryAudioRef.current.pause();
+                    setIsBatteryAudioPlaying(false);
+                }
+            };
+        }
+    }, [currentQuestionIndex, questions]);
 
     const handleAnswerSelect = (value: string): void => {
         const newAnswers = [...answers];
@@ -294,7 +266,6 @@ const Auditory: React.FC = () => {
     };
 
     const handleReplayAudio = (): void => {
-        // Stop MP3 if playing
         if (batteryAudioRef.current && isBatteryAudioPlaying) {
             batteryAudioRef.current.pause();
             setIsBatteryAudioPlaying(false);
@@ -325,8 +296,8 @@ const Auditory: React.FC = () => {
             setIsBatteryAudioPlaying(false);
         }
         setCurrentQuestionIndex(0);
-        setAnswers(Array(5).fill(''));
-        setMarks(Array(5).fill(0));
+        setAnswers(Array(questions.length).fill(''));
+        setMarks(Array(questions.length).fill(0));
         setTotalMarks(0);
         setIsSubmitted(false);
         setAudioError(false);
@@ -356,9 +327,7 @@ const Auditory: React.FC = () => {
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
-            {/* Navigation Bar */}
-            <Header></Header>
-            {/* Navigation Bar */}
+            <Header />
 
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
@@ -367,15 +336,14 @@ const Auditory: React.FC = () => {
                     </div>
                 )}
 
-                {/* Sound Toggle Button */}
                 <div className="fixed top-20 right-4 z-50">
                     <Button
                         onClick={toggleSound}
                         className={`p-3 rounded-full shadow-lg ${
-                            isSoundEnabled
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : 'bg-red-500 hover:bg-red-600'
-                        } text-white transition-all duration-300`}
+    isSoundEnabled
+        ? 'bg-green-500 hover:bg-green-600'
+        : 'bg-red-500 hover:bg-red-600'
+} text-white transition-all duration-300`}
                         title={isSoundEnabled ? 'Disable Sound' : 'Enable Sound'}
                     >
                         {isSoundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
@@ -386,7 +354,7 @@ const Auditory: React.FC = () => {
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🎧</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🎵 Test 4 - Auditory 
+                            🎵 Test 4 - Auditory
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
@@ -402,7 +370,6 @@ const Auditory: React.FC = () => {
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex-1 flex flex-col items-center">
-                    {/* Fixed Audio Element with proper error handling */}
                     <audio
                         ref={batteryAudioRef}
                         preload="metadata"
@@ -414,7 +381,7 @@ const Auditory: React.FC = () => {
                         Your browser does not support the audio element.
                     </audio>
 
-                    {!isSubmitted ? (
+                    {questions.length > 0 && !isSubmitted ? (
                         <div className="space-y-8 w-full">
                             <div className="text-center mb-4">
                                 <span className="bg-blue-500 text-white px-4 py-2 rounded-full text-lg font-bold">
@@ -435,10 +402,10 @@ const Auditory: React.FC = () => {
                                         onClick={handleReplayAudio}
                                         disabled={isPlaying || !isSoundEnabled}
                                         className={`flex items-center space-x-2 px-6 py-3 rounded-full font-bold transition-all duration-300 ${
-                                            isPlaying || !isSoundEnabled
-                                                ? 'bg-gray-300 cursor-not-allowed'
-                                                : 'bg-blue-500 hover:bg-blue-600 text-white hover:scale-105'
-                                        }`}
+    isPlaying || !isSoundEnabled
+        ? 'bg-gray-300 cursor-not-allowed'
+        : 'bg-blue-500 hover:bg-blue-600 text-white hover:scale-105'
+}`}
                                     >
                                         {isPlaying ? (
                                             <>
@@ -463,17 +430,16 @@ const Auditory: React.FC = () => {
                                         </Button>
                                     )}
 
-                                    {/* Fixed MP3 Button with better error handling */}
                                     <Button
                                         onClick={toggleBatteryAudio}
                                         disabled={!isSoundEnabled || batteryAudioError}
                                         className={`flex items-center space-x-2 px-6 py-3 rounded-full font-bold transition-all duration-300 ${
-                                            batteryAudioError
-                                                ? 'bg-gray-400 cursor-not-allowed'
-                                                : isBatteryAudioPlaying
-                                                    ? 'bg-orange-500 hover:bg-orange-600 text-white hover:scale-105'
-                                                    : 'bg-green-500 hover:bg-green-600 text-white hover:scale-105'
-                                        } ${!isSoundEnabled ? 'bg-gray-300 cursor-not-allowed' : ''}`}
+    batteryAudioError
+        ? 'bg-gray-400 cursor-not-allowed'
+        : isBatteryAudioPlaying
+            ? 'bg-orange-500 hover:bg-orange-600 text-white hover:scale-105'
+            : 'bg-green-500 hover:bg-green-600 text-white hover:scale-105'
+} ${!isSoundEnabled ? 'bg-gray-300 cursor-not-allowed' : ''}`}
                                     >
                                         {batteryAudioError ? (
                                             <>
@@ -510,10 +476,10 @@ const Auditory: React.FC = () => {
                                             onClick={() => handleAnswerSelect(option)}
                                             disabled={isSubmitted}
                                             className={`px-6 py-4 rounded-xl text-lg font-medium border-2 transition-all duration-300 hover:scale-105 ${
-                                                answers[currentQuestionIndex] === option
-                                                    ? 'bg-purple-500 text-white border-purple-600 shadow-lg'
-                                                    : 'bg-gradient-to-r from-pink-200 to-purple-200 text-purple-800 border-purple-300 hover:from-pink-300 hover:to-purple-300'
-                                            } ${isSubmitted ? 'cursor-not-allowed' : ''}`}
+    answers[currentQuestionIndex] === option
+        ? 'bg-purple-500 text-white border-purple-600 shadow-lg'
+        : 'bg-gradient-to-r from-pink-200 to-purple-200 text-purple-800 border-purple-300 hover:from-pink-300 hover:to-purple-300'
+} ${isSubmitted ? 'cursor-not-allowed' : ''}`}
                                         >
                                             {option}
                                         </Button>
@@ -540,7 +506,7 @@ const Auditory: React.FC = () => {
                                         disabled={!answers[currentQuestionIndex] || isSubmitted}
                                         className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
                                     >
-                                         Next! 
+                                        Next!
                                     </Button>
                                 </div>
                             ) : (
@@ -550,7 +516,7 @@ const Auditory: React.FC = () => {
                                         disabled={!answers[currentQuestionIndex] || isSubmitted}
                                         className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
                                     >
-                                         Submit My Answers! 
+                                        Submit My Answers!
                                     </Button>
                                 </div>
                             )}

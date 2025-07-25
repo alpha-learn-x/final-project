@@ -35,14 +35,14 @@ interface UserData {
 const Visual: React.FC = () => {
     const videoRef = useRef<HTMLIFrameElement>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-    const [answers, setAnswers] = useState<string[]>(Array(5).fill(''));
-    const [marks, setMarks] = useState<number[]>(Array(5).fill(0));
+    const [answers, setAnswers] = useState<string[]>([]);
+    const [marks, setMarks] = useState<number[]>([]);
     const [totalMarks, setTotalMarks] = useState<number>(0);
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [userId, setUserId] = useState<string>('');
     const [username, setUsername] = useState<string>('');
     const [email, setEmail] = useState<string>('');
-    const [quizName, setQuizName] = useState<string>('');
+    const [quizName, setQuizName] = useState<string>('VISUAL');
     const [user, setUser] = useState<string>('');
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const [language, setLanguage] = useState<string>("english");
@@ -50,44 +50,8 @@ const Visual: React.FC = () => {
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [currentVideoTime, setCurrentVideoTime] = useState<number>(0);
     const [videoStarted, setVideoStarted] = useState<boolean>(false);
-
-    const questions: Question[] = [
-        {
-            id: 1,
-            text: "What should you do when the traffic light turns red?",
-            pauseAt: 5,
-            answer: "Stop",
-            options: ["Go", "Stop", "Wait", "Run"]
-        },
-        {
-            id: 2,
-            text: "What should you do when the traffic light turns green?",
-            pauseAt: 15,
-            answer: "Go",
-            options: ["Stop", "Go", "Wait", "Run"]
-        },
-        {
-            id: 3,
-            text: "What should you do when the traffic light turns yellow?",
-            pauseAt: 25,
-            answer: "Wait",
-            options: ["Go", "Stop", "Wait", "Run"]
-        },
-        {
-            id: 4,
-            text: "What should you do at a pedestrian crossing?",
-            pauseAt: 35,
-            answer: "Wait",
-            options: ["Go", "Run", "Wait", "Stop"]
-        },
-        {
-            id: 5,
-            text: "What should you do when you see a yield sign?",
-            pauseAt: 45,
-            answer: "Yield",
-            options: ["Go", "Stop", "Yield", "Run"]
-        },
-    ];
+    const [questions, setQuestions] = useState<Question[]>([]);
+    const [youtubeUrl, setYoutubeUrl] = useState<string>('');
 
     // Extract YouTube video ID from URL
     const getYouTubeVideoId = (url: string): string => {
@@ -96,38 +60,44 @@ const Visual: React.FC = () => {
         return (match && match[2].length === 11) ? match[2] : '';
     };
 
-    const youtubeVideoId = getYouTubeVideoId("https://youtu.be/haaRTKm8ePQ?si=JcCRwBH2b21RLlCj");
-    const youtubeEmbedUrl = `https://www.youtube.com/embed/${youtubeVideoId}?enablejsapi=1&origin=${window.location.origin}`;
-
+    // Load quiz questions from backend
     useEffect(() => {
-        // Note: Since localStorage is not supported in Claude.ai artifacts,
-        // we'll use default values. In your actual app, uncomment the localStorage code below:
+        const fetchQuiz = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/visual/questions');
+                console.log(response)
+                setQuestions(response.data.questions);
+                setYoutubeUrl(response.data.youtubeUrl);
+                setAnswers(Array(response.data.questions.length).fill(''));
+                setMarks(Array(response.data.questions.length).fill(0));
+            } catch (error) {
+                console.error('Error fetching quiz:', error);
+                setSaveStatus('Failed to load quiz questions');
+            }
+        };
 
-        // const userData: UserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        // setUser(userData.id || '');
-        // setUserId(userData.userId || '');
-        // setUsername(userData.userName || '');
-        // setEmail(userData.email || '');
+        fetchQuiz();
 
-        // Default values for demo
+        // Set user data (same as before)
         setUser('demo-user');
         setUserId('demo-user-id');
         setUsername('Demo Student');
         setEmail('demo@example.com');
     }, []);
 
-    // Simulate video time tracking for demo purposes
+    const youtubeVideoId = getYouTubeVideoId(youtubeUrl);
+    const youtubeEmbedUrl = `https://www.youtube.com/embed/${youtubeVideoId}?enablejsapi=1&origin=${window.location.origin}`;
+
+    // Simulate video time tracking
     useEffect(() => {
-        if (isPlaying && !isSubmitted) {
+        if (isPlaying && !isSubmitted && questions.length > 0) {
             const interval = setInterval(() => {
                 setCurrentVideoTime(prev => {
                     const newTime = prev + 1;
                     const currentQuestion = questions[currentQuestionIndex];
 
-                    // Check if we should pause at the current question
                     if (newTime >= currentQuestion.pauseAt && newTime < currentQuestion.pauseAt + 1) {
                         setIsPlaying(false);
-                        // In a real implementation, you would pause the YouTube video here
                         return newTime;
                     }
 
@@ -137,7 +107,7 @@ const Visual: React.FC = () => {
 
             return () => clearInterval(interval);
         }
-    }, [isPlaying, currentQuestionIndex, isSubmitted]);
+    }, [isPlaying, currentQuestionIndex, isSubmitted, questions]);
 
     const handleAnswerSelect = (index: number, value: string): void => {
         const newAnswers = [...answers];
@@ -163,7 +133,6 @@ const Visual: React.FC = () => {
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
             setIsPlaying(true);
-            // In a real implementation, you would resume the YouTube video here
         } else if (!isSubmitted) {
             calculateMarks();
             setIsSubmitted(true);
@@ -184,9 +153,8 @@ const Visual: React.FC = () => {
         setTotalMarks(total);
 
         try {
-            // Note: This API call will fail in the demo environment
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
-                quizName:"VISUAL",
+                quizName,
                 user,
                 userId,
                 username,
@@ -197,16 +165,8 @@ const Visual: React.FC = () => {
             setSaveStatus('Quiz results saved successfully!');
             console.log('Quiz results saved:', response.data);
         } catch (error: any) {
-            setSaveStatus('Quiz completed! (API not available in demo)');
-            console.log('Quiz results would be saved:', {
-                quizName: "VISUAL",
-                user,
-                userId,
-                username,
-                email,
-                totalMarks: total,
-                date: new Date().toISOString()
-            });
+            setSaveStatus('Quiz completed! (Error saving results)');
+            console.error('Error saving results:', error);
         }
     };
 
@@ -244,13 +204,11 @@ const Visual: React.FC = () => {
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
-            {/* Navigation Bar */}
-            <Header></Header>
-            {/* Navigation Bar */}
+            <Header />
 
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
-                    <div className={`mb-4 p-4 rounded-lg ${saveStatus.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    <div className={`mb-4 p-4 rounded-lg ${saveStatus.includes('Error') || saveStatus.includes('Failed') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                         {saveStatus}
                     </div>
                 )}
@@ -274,7 +232,6 @@ const Visual: React.FC = () => {
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex-1 flex flex-col items-center">
-                    {/* YouTube Video Embed */}
                     <div className="w-full max-w-4xl mb-6">
                         <div className="relative" style={{ paddingBottom: '56.25%', height: 0 }}>
                             <iframe
@@ -288,7 +245,6 @@ const Visual: React.FC = () => {
                             ></iframe>
                         </div>
 
-                        {/* Video Instructions */}
                         <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                             <p className="text-lg font-semibold text-blue-800 text-center">
                                 📺 Watch the video above and answer the questions that appear below!
@@ -299,9 +255,7 @@ const Visual: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Alternative Demo Video Section */}
-
-                    {currentQuestionIndex < questions.length && (
+                    {questions.length > 0 && currentQuestionIndex < questions.length && (
                         <div className="space-y-8 w-full">
                             <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-8 border-2 border-dashed border-blue-300 transform hover:scale-105 transition-all duration-300">
                                 <div className="flex items-center mb-4 justify-center">
