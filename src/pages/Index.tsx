@@ -122,42 +122,42 @@ const Index = () => {
       role: "Parent",
       rating: 5,
       comment: "TinkerAlpha has made learning electronics so fun for my daughter! She's excited about every lesson.",
-      avatar: "👩🦳"
+      avatarUrl: "/uploads/Parent.jpg"
     },
     {
       name: "Sandun Dissanayake",
       role: "Teacher",
       rating: 5,
       comment: "The gamification and interactive activities keep students engaged throughout the entire lesson.",
-      avatar: "👨🏫"
+      avatarUrl: "/uploads/Teacher.jpg"
     },
     {
       name: "Fathima Afla",
       role: "Parent",
       rating: 5,
       comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
-      avatar: "👩💼"
+      avatarUrl: "/uploads/Parent-1.jpg"
     },
     {
       name: "Kasuni Perera",
       role: "student",
       rating: 5,
       comment: "TinkerAlpha has made learning electronics so fun for my daughter! She's excited about every lesson.",
-      avatar: "👩🦳"
+      avatarUrl: "/uploads/student.jpg"
     },
     {
       name: "Kamal Bandara",
       role: "Teacher",
       rating: 5,
       comment: "The gamification and interactive activities keep students engaged throughout the entire lesson.",
-      avatar: "👨🏫"
+      avatarUrl: "/uploads/Teacher-2.jpg"
     },
     {
       name: "Nimali Alwis",
       role: "Parent",
       rating: 5,
       comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
-      avatar: "👩💼"
+      avatarUrl: "/uploads/parent-2.jpg"
     }
   ];
 
@@ -269,7 +269,13 @@ const Index = () => {
               <SwiperSlide key={index}>
                 <Card className="bg-gradient-to-b from-blue-50 to-blue-100 border-2 border-blue-200">
                   <CardContent className="p-6 text-center">
-                    <div className="text-4xl mb-4">{testimonial.avatar}</div>
+                    <div className="flex justify-center mb-4">
+                      <img
+                        src={testimonial.avatarUrl}
+                        alt={testimonial.name}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-blue-300 shadow"
+                      />
+                    </div>
                     <div className="flex justify-center mb-4">
                       {[...Array(testimonial.rating)].map((_, i) => (
                         <Star key={i} className="w-5 h-5 text-yellow-500 fill-current" />
