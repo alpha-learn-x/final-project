@@ -118,21 +118,21 @@ const Index = () => {
 
   const testimonials = [
     {
-      name: "Nimasha Thilakarathne",
+      name: "Gayathri Kumari",
       role: "Parent",
       rating: 5,
       comment: "Stay connected with your child’s learning path, track progress, and support them as they discover the world of science and innovation.",
       avatarUrl: "/uploads/Parent.jpg"
     },
     {
-      name: "Sandun Dissanayake",
+      name: "Nuwani Bandara",
       role: "Teacher",
       rating: 5,
       comment:"Gain full control over platform content, user management, and analytics to ensure a smooth and effective learning experience for all users.",
       avatarUrl: "/uploads/Teacher.jpg"
     },
     {
-      name: "Fathima Afla",
+      name: "Dammika Kumara",
       role: "Parent",
       rating: 5,
       comment: "Celebrate achievements and be part of every step as your child discovers science, technology, and innovation.",
