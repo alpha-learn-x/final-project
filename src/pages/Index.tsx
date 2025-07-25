@@ -137,6 +137,27 @@ const Index = () => {
       rating: 5,
       comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
       avatar: "👩💼"
+    },
+    {
+      name: "Kasuni Perera",
+      role: "student",
+      rating: 5,
+      comment: "TinkerAlpha has made learning electronics so fun for my daughter! She's excited about every lesson.",
+      avatar: "👩🦳"
+    },
+    {
+      name: "Kamal Bandara",
+      role: "Teacher",
+      rating: 5,
+      comment: "The gamification and interactive activities keep students engaged throughout the entire lesson.",
+      avatar: "👨🏫"
+    },
+    {
+      name: "Nimali Alwis",
+      role: "Parent",
+      rating: 5,
+      comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
+      avatar: "👩💼"
     }
   ];
 
@@ -230,8 +251,19 @@ const Index = () => {
             pagination={{ clickable: true }}
             autoplay={{ delay: 5000 }}
             spaceBetween={30}
-            slidesPerView={1}
-            className="max-w-3xl mx-auto"
+            slidesPerView={3}     // Show 3 slides at a time on larger screens
+            breakpoints={{
+              0: {
+                slidesPerView: 1, // 1 slide on small screens (mobile)
+              },
+              640: {
+                slidesPerView: 2, // 2 slides on small tablets
+              },
+              1024: {
+                slidesPerView: 3, // 3 slides on desktop and larger
+              },
+            }}
+            className="max-w-7xl mx-auto"
           >
             {testimonials.map((testimonial, index) => (
               <SwiperSlide key={index}>
@@ -251,6 +283,7 @@ const Index = () => {
               </SwiperSlide>
             ))}
           </Swiper>
+
         </div>
       </div>
 
