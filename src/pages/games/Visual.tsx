@@ -70,7 +70,7 @@ const Visual: React.FC = () => {
     useEffect(() => {
         const fetchQuizTasks = async () => {
             try {
-                const response = await axios.get("http://localhost:5000/api/v1/quizzes/visual/questions"); // Update URL if needed
+                const response = await axios.get("http://localhost:5000/api/v1/quizzes/visual/questions");
                 const data = response.data;
 
                 if (!data.tasks || !Array.isArray(data.tasks)) {
