@@ -30,6 +30,7 @@ import Students from "@/pages/Students.tsx";
 import SaveVisualQuiz from "@/pages/games/SaveVisualQuiz.tsx";
 import SaveAuditoryQuiz from "@/pages/games/SaveAuditoryQuiz.tsx";
 import SaveDragAndDropQuiz from "@/pages/games/SaveDragAndDrop.tsx";
+import Kinesthetic from "@/pages/games/Kinesthetic.tsx";
 
 
 const queryClient = new QueryClient();
@@ -185,6 +186,12 @@ const App = () => (
             <Route path="/modularity" element={
               <ProtectedRoute>
                 <Modularities />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/kinesthetic" element={
+              <ProtectedRoute>
+                <Kinesthetic />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
