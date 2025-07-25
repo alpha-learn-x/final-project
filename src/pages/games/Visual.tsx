@@ -58,80 +58,46 @@ const Visual: React.FC = () => {
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [currentVideoTime, setCurrentVideoTime] = useState<number>(0);
     const [videoStarted, setVideoStarted] = useState<boolean>(false);
+    const [totalTimeSpent, setTotalTimeSpent] = useState(0);
 
-    // Time tracking states
-    const [quizStartTime, setQuizStartTime] = useState<number>(0);
-    const [totalTimeSpent, setTotalTimeSpent] = useState<number>(0);
-    const [questionStartTime, setQuestionStartTime] = useState<number>(0);
+
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [questionTimes, setQuestionTimes] = useState<number[]>([]);
-
-    const [tasks] = useState<Task[]>([
-        {
-            id: 1,
-            questions: [
-                { id: 1, text: "1. What is a resistor?", pauseAt: 5, answer: "A component that resists current", options: ["A power source", "A component that resists current", "A wire", "A switch"] },
-                { id: 2, text: "2. What color band indicates 100 ohms?", pauseAt: 10, answer: "Brown", options: ["Red", "Brown", "Green", "Blue"] },
-                { id: 3, text: "3. How is resistance measured?", pauseAt: 15, answer: "In ohms", options: ["In volts", "In ohms", "In amps", "In watts"] },
-                { id: 4, text: "4. What happens if resistance is too high?", pauseAt: 20, answer: "Current decreases", options: ["Current increases", "Current decreases", "Voltage increases", "Nothing"] },
-                { id: 5, text: "5. Where is a resistor commonly used?", pauseAt: 25, answer: "In circuits", options: ["In batteries", "In circuits", "In motors", "In lights"] }
-            ],
-            youtubeUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-        },
-        {
-            id: 2,
-            questions: [
-                { id: 1, text: "1. What is a capacitor?", pauseAt: 5, answer: "A device that stores charge", options: ["A resistor", "A device that stores charge", "A battery", "A switch"] },
-                { id: 2, text: "2. What unit measures capacitance?", pauseAt: 10, answer: "Farads", options: ["Ohms", "Farads", "Volts", "Amps"] },
-                { id: 3, text: "3. What happens when a capacitor charges?", pauseAt: 15, answer: "It stores energy", options: ["It discharges", "It stores energy", "It breaks", "It heats up"] },
-                { id: 4, text: "4. Where are capacitors used?", pauseAt: 20, answer: "In power supplies", options: ["In wires", "In power supplies", "In resistors", "In motors"] },
-                { id: 5, text: "5. What is a capacitor's role in AC circuits?", pauseAt: 25, answer: "Filters signals", options: ["Generates power", "Filters signals", "Increases resistance", "Stores heat"] }
-            ],
-            youtubeUrl: "https://www.youtube.com/watch?v=9bZkp7q19f0"
-        },
-        {
-            id: 3,
-            questions: [
-                { id: 1, text: "1. What is a diode?", pauseAt: 5, answer: "A one-way current device", options: ["A resistor", "A one-way current device", "A capacitor", "A battery"] },
-                { id: 2, text: "2. What symbol represents a diode?", pauseAt: 10, answer: "Triangle with line", options: ["Circle", "Triangle with line", "Square", "Line"] },
-                { id: 3, text: "3. What happens in reverse bias?", pauseAt: 15, answer: "No current flows", options: ["Current flows", "No current flows", "Voltage increases", "Resistance drops"] },
-                { id: 4, text: "4. Where are diodes used?", pauseAt: 20, answer: "In rectifiers", options: ["In capacitors", "In rectifiers", "In resistors", "In wires"] },
-                { id: 5, text: "5. What is a LED?", pauseAt: 25, answer: "Light-emitting diode", options: ["Laser diode", "Light-emitting diode", "Power diode", "Signal diode"] }
-            ],
-            youtubeUrl: "https://www.youtube.com/watch?v=3at1F34k5M"
-        },
-        {
-            id: 4,
-            questions: [
-                { id: 1, text: "1. What is a transistor?", pauseAt: 5, answer: "A current amplifier", options: ["A resistor", "A current amplifier", "A capacitor", "A diode"] },
-                { id: 2, text: "2. What are the types of transistors?", pauseAt: 10, answer: "NPN and PNP", options: ["NPN and PNP", "PNP and NPN", "NP and PP", "PN and NN"] },
-                { id: 3, text: "3. What controls a transistor?", pauseAt: 15, answer: "Base current", options: ["Collector voltage", "Base current", "Emitter resistance", "Gate voltage"] },
-                { id: 4, text: "4. Where are transistors used?", pauseAt: 20, answer: "In amplifiers", options: ["In wires", "In amplifiers", "In capacitors", "In diodes"] },
-                { id: 5, text: "5. What is a transistor's off state?", pauseAt: 25, answer: "No current flow", options: ["Full current", "No current flow", "Half current", "Maximum voltage"] }
-            ],
-            youtubeUrl: "https://www.youtube.com/watch?v=7k93k5j9p0"
-        },
-        {
-            id: 5,
-            questions: [
-                { id: 1, text: "1. What is an inductor?", pauseAt: 5, answer: "A coil that stores energy", options: ["A resistor", "A coil that stores energy", "A capacitor", "A diode"] },
-                { id: 2, text: "2. What unit measures inductance?", pauseAt: 10, answer: "Henries", options: ["Ohms", "Henries", "Farads", "Volts"] },
-                { id: 3, text: "3. What happens in an AC circuit with an inductor?", pauseAt: 15, answer: "Opposes current change", options: ["Increases current", "Opposes current change", "Stores voltage", "Reduces resistance"] },
-                { id: 4, text: "4. Where are inductors used?", pauseAt: 20, answer: "In filters", options: ["In resistors", "In filters", "In capacitors", "In transistors"] },
-                { id: 5, text: "5. What is an inductor's core material?", pauseAt: 25, answer: "Iron", options: ["Copper", "Iron", "Aluminum", "Gold"] }
-            ],
-            youtubeUrl: "https://www.youtube.com/watch?v=k9p0m3n4j5k"
-        }
-    ]);
-
+    const [quizStartTime, setQuizStartTime] = useState<number | null>(null);
+    const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
     // Initialize arrays and start time tracking
     useEffect(() => {
-        const totalQuestions = tasks.length * 5;
-        setAnswers(new Array(totalQuestions).fill(''));
-        setMarks(new Array(totalQuestions).fill(0));
-        setQuestionTimes(new Array(totalQuestions).fill(0));
-        setQuizStartTime(Date.now());
-        setQuestionStartTime(Date.now());
-    }, [tasks.length]);
+        const fetchQuizTasks = async () => {
+            try {
+                const response = await axios.get("http://localhost:5000/api/v1/quizzes/visual/questions"); // Update URL if needed
+                const data = response.data;
+
+                if (!data.tasks || !Array.isArray(data.tasks)) {
+                    throw new Error("Invalid API response format.");
+                }
+
+                setTasks(data.tasks);
+
+                const totalQuestions = data.tasks.reduce(
+                    (count: number, task: Task) => count + task.questions.length,
+                    0
+                );
+
+                setAnswers(new Array(totalQuestions).fill(''));
+                setMarks(new Array(totalQuestions).fill(0));
+                setQuestionTimes(new Array(totalQuestions).fill(0));
+                setQuizStartTime(Date.now());
+                setQuestionStartTime(Date.now());
+            } catch (error) {
+                console.error("Error fetching quiz data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchQuizTasks();
+    }, []);
 
     // Get user data from localStorage or authentication system
     useEffect(() => {
