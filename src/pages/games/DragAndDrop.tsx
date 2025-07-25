@@ -239,7 +239,7 @@ const DragAndDrop: React.FC = () => {
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce"></div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 Test 3 - Drag & Drop 
+                            🪄 Test 3 - Kinesthetics 
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
