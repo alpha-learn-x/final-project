@@ -1,182 +1,101 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import axios from 'axios';
+import Header from "@/components/Header.tsx";
 
-const Kinesthetic = () => {
-    const tasks = [
-        {
-            id: 1,
-            images: [
-                { id: "open", src: "https://via.placeholder.com/50?text=Open" },
-                { id: "closed", src: "https://via.placeholder.com/50?text=Closed" },
-                { id: "parallel", src: "https://via.placeholder.com/50?text=Parallel" },
-                { id: "series", src: "https://via.placeholder.com/50?text=Series" },
-                { id: "short", src: "https://via.placeholder.com/50?text=Short" }
-            ],
-            options: [
-                "Open Circuit",
-                "Closed Circuit",
-                "Parallel circuit",
-                "Series Circuit",
-                "Short Circuit"
-            ]
-        },
-        {
-            id: 2,
-            images: [
-                { id: "resistor", src: "https://via.placeholder.com/50?text=Resistor" },
-                { id: "bulb", src: "https://via.placeholder.com/50?text=Bulb" },
-                { id: "battery", src: "https://via.placeholder.com/50?text=Battery" },
-                { id: "switch", src: "https://via.placeholder.com/50?text=Switch" },
-                { id: "wire", src: "https://via.placeholder.com/50?text=Wire" }
-            ],
-            options: [
-                "Battery",
-                "Wire",
-                "Resistor",
-                "Bulb",
-                "Switch"
-            ]
-        },
-        {
-            id: 3,
-            images: [
-                { id: "fan", src: "https://via.placeholder.com/50?text=Fan" },
-                { id: "motor", src: "https://via.placeholder.com/50?text=Motor" },
-                { id: "buzzer", src: "https://via.placeholder.com/50?text=Buzzer" },
-                { id: "speaker", src: "https://via.placeholder.com/50?text=Speaker" },
-                { id: "led", src: "https://via.placeholder.com/50?text=LED" }
-            ],
-            options: [
-                "LED",
-                "Motor",
-                "Fan",
-                "Buzzer",
-                "Speaker"
-            ]
-        },
-        {
-            id: 4,
-            images: [
-                { id: "dc", src: "https://via.placeholder.com/50?text=DC" },
-                { id: "ac", src: "https://via.placeholder.com/50?text=AC" },
-                { id: "solar", src: "https://via.placeholder.com/50?text=Solar" },
-                { id: "wind", src: "https://via.placeholder.com/50?text=Wind" },
-                { id: "hydro", src: "https://via.placeholder.com/50?text=Hydro" }
-            ],
-            options: [
-                "AC Power",
-                "DC Power",
-                "Solar Energy",
-                "Wind Energy",
-                "Hydro Power"
-            ]
-        },
-        {
-            id: 5,
-            images: [
-                { id: "lamp", src: "https://via.placeholder.com/50?text=Lamp" },
-                { id: "heater", src: "https://via.placeholder.com/50?text=Heater" },
-                { id: "fridge", src: "https://via.placeholder.com/50?text=Fridge" },
-                { id: "tv", src: "https://via.placeholder.com/50?text=TV" },
-                { id: "charger", src: "https://via.placeholder.com/50?text=Charger" }
-            ],
-            options: [
-                "Fridge",
-                "TV",
-                "Lamp",
-                "Heater",
-                "Charger"
-            ]
-        }
-    ];
-
-    const correctAnswersMap = {
-        1: {
-            "Open Circuit": "open",
-            "Closed Circuit": "closed",
-            "Parallel circuit": "parallel",
-            "Series Circuit": "series",
-            "Short Circuit": "short"
-        },
-        2: {
-            "Battery": "battery",
-            "Wire": "wire",
-            "Resistor": "resistor",
-            "Bulb": "bulb",
-            "Switch": "switch"
-        },
-        3: {
-            "LED": "led",
-            "Motor": "motor",
-            "Fan": "fan",
-            "Buzzer": "buzzer",
-            "Speaker": "speaker"
-        },
-        4: {
-            "AC Power": "ac",
-            "DC Power": "dc",
-            "Solar Energy": "solar",
-            "Wind Energy": "wind",
-            "Hydro Power": "hydro"
-        },
-        5: {
-            "Fridge": "fridge",
-            "TV": "tv",
-            "Lamp": "lamp",
-            "Heater": "heater",
-            "Charger": "charger"
-        }
-    };
-
-    const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
-    const [time, setTime] = useState(0);
-    const [draggedImage, setDraggedImage] = useState(null);
-    const [droppedItems, setDroppedItems] = useState({});
-    const [startTime, setStartTime] = useState(null);
-    const [results, setResults] = useState([]);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [totalTime, setTotalTime] = useState(0);
-    const [isQuizCompleted, setIsQuizCompleted] = useState(false);
+const ReadWrite = () => {
+    const [language, setLanguage] = useState("english");
+    const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [saveStatus, setSaveStatus] = useState(null);
-
-    // User data states
+    const [time, setTime] = useState(0);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [stepsOrder, setStepsOrder] = useState(Array(5).fill(''));
+    const [marks, setMarks] = useState(Array(5).fill(0)); // Marks for each question
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [showResults, setShowResults] = useState(false);
     const [userId, setUserId] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [user, setUser] = useState('');
 
-    const task = tasks[currentTaskIndex];
+    const questions = [
+        {
+            id: 1,
+            scenario: "Help Ruwan to light up a small bulb using a battery and wires.",
+            steps: [
+                "Ruwan connects one end of the wire to the battery's (+) terminal and the other to the bulb's metal base.",
+                "The bulb lights up brightly, and Ruwan is happy!",
+                "Ruwan checks that all connections are secure and touching the metal parts.",
+                "He connects the other end of the second wire to the battery's (-) terminal and other to the bulb's metal side of the bulb.",
+                "Ruwan collects a small bulb, a battery, and two wires."
+            ],
+            correctOrder: [4, 0, 2, 3, 1]
+        },
+        {
+            id: 2,
+            scenario: "Assist Ruwan in building a simple circuit with a switch.",
+            steps: [
+                "Ruwan connects the switch to the circuit.",
+                "The circuit works, and the bulb lights up.",
+                "Ruwan tests the switch to ensure it turns the bulb on and off.",
+                "He connects the wire from the battery to the bulb.",
+                "Ruwan gathers a bulb, battery, wires, and a switch."
+            ],
+            correctOrder: [4, 3, 0, 2, 1]
+        },
+        {
+            id: 3,
+            scenario: "Guide Ruwan to set up a series circuit.",
+            steps: [
+                "Ruwan connects the second bulb to the first bulb.",
+                "The bulbs light up in sequence.",
+                "He connects the battery to the first bulb.",
+                "Ruwan checks all connections for tightness.",
+                "Ruwan collects two bulbs, a battery, and wires."
+            ],
+            correctOrder: [4, 2, 0, 3, 1]
+        },
+        {
+            id: 4,
+            scenario: "Help Ruwan create a parallel circuit.",
+            steps: [
+                "Ruwan connects the second bulb parallel to the first.",
+                "Both bulbs light up independently.",
+                "He connects the battery to the first bulb.",
+                "Ruwan ensures all wires are secure.",
+                "Ruwan gathers two bulbs, a battery, and wires."
+            ],
+            correctOrder: [4, 2, 0, 3, 1]
+        },
+        {
+            id: 5,
+            scenario: "Assist Ruwan in troubleshooting a circuit.",
+            steps: [
+                "Ruwan replaces a broken wire.",
+                "The bulb lights up after fixing.",
+                "He checks for loose connections.",
+                "Ruwan notices the bulb is not lighting.",
+                "Ruwan gathers tools and inspects the circuit."
+            ],
+            correctOrder: [4, 3, 2, 0, 1]
+        }
+    ];
 
-    // Load user data on component mount
     useEffect(() => {
-        const userDataStr = localStorage.getItem('currentUser');
-        if (!userDataStr) {
-            console.warn("No currentUser found in localStorage");
-            setSaveStatus('Please log in to start the quiz.');
-            return;
-        }
-        try {
-            const userData = JSON.parse(userDataStr);
-            console.log("Loaded user data:", userData);
-            setUser(userData.id || '');
-            setUserId(userData.userId || '');
-            setUsername(userData.userName || '');
-            setEmail(userData.email || '');
-        } catch (err) {
-            console.error("Failed to parse user data from localStorage", err);
-            setSaveStatus('Error loading user data. Please log in again.');
-        }
+        const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        setUser(userData.id || '');
+        setUserId(userData.userId || '');
+        setUsername(userData.userName || '');
+        setEmail(userData.email || '');
     }, []);
 
-    // Timer effect
     useEffect(() => {
         let timer;
         if (isTimerRunning) {
             timer = setInterval(() => {
                 setTime(prev => prev + 1);
-                setTotalTime(prev => prev + 1);
             }, 1000);
         }
         return () => clearInterval(timer);
@@ -184,179 +103,81 @@ const Kinesthetic = () => {
 
     const handleStartTimer = () => {
         if (!isTimerRunning) {
-            setStartTime(new Date());
             setIsTimerRunning(true);
         }
     };
 
-    const handleDragStart = (e, imageId) => {
-        setDraggedImage(imageId);
-        e.dataTransfer.setData("text/plain", imageId);
-    };
-
-    const handleDrop = (e, option) => {
-        e.preventDefault();
-        const imageId = draggedImage || e.dataTransfer.getData("text/plain");
-        if (imageId && !droppedItems[option]) {
-            setDroppedItems(prev => ({
-                ...prev,
-                [option]: imageId
-            }));
+    const handleOrderChange = (index, value) => {
+        const newOrder = [...stepsOrder];
+        const numValue = parseInt(value, 10);
+        if (numValue >= 1 && numValue <= 5 && !newOrder.includes(value)) {
+            newOrder[index] = value;
+            setStepsOrder(newOrder);
         }
     };
 
-    const handleDragOver = (e) => e.preventDefault();
-
-    const calculateMarks = () => {
-        const correctAnswers = correctAnswersMap[task.id];
+    const calculateMarksForCurrent = () => {
+        const userOrder = stepsOrder.map(val => parseInt(val) - 1).filter(val => !isNaN(val));
+        const currentQuestion = questions[currentQuestionIndex];
         let correct = 0;
-
-        task.options.forEach(option => {
-            const userAnswer = droppedItems[option];
-            const correctAnswer = correctAnswers[option];
-            const isCorrect = userAnswer === correctAnswer;
-
-            console.log(`${option}: User answered "${userAnswer || 'none'}", Correct answer is "${correctAnswer}" - ${isCorrect ? 'CORRECT (+1 mark)' : 'WRONG (0 marks)'}`);
-
-            if (isCorrect) {
-                correct++;
-            }
-        });
-
-        console.log(`Task ${task.id} Marks: ${correct}/${task.options.length}`);
+        for (let i = 0; i < 5; i++) {
+            if (userOrder[i] === currentQuestion.correctOrder[i]) correct++;
+        }
         return correct;
     };
 
-    const isComplete = Object.keys(droppedItems).length === task.options.length;
-
-    // When task is completed, add marks for that task to results
-    useEffect(() => {
-        if (isComplete && isTimerRunning) {
-            const marks = calculateMarks();
-            const taskResult = {
-                taskId: task.id,
-                timeTaken: time,
-                marks: marks
-            };
-
-            setResults(prev => {
-                if (prev.some(r => r.taskId === task.id)) return prev;
-                const newResults = [...prev, taskResult];
-                console.log("Updated results:", newResults);
-                return newResults;
-            });
+    const handleNext = () => {
+        if (!isTimerRunning) return;
+        if (currentQuestionIndex < questions.length - 1 && !isSubmitted) {
+            const newMarks = [...marks];
+            newMarks[currentQuestionIndex] = calculateMarksForCurrent();
+            setMarks(newMarks);
+            setStepsOrder(Array(5).fill(''));
+            setCurrentQuestionIndex(prev => prev + 1);
+        } else if (!isSubmitted) {
+            const newMarks = [...marks];
+            newMarks[currentQuestionIndex] = calculateMarksForCurrent();
+            setMarks(newMarks);
+            const totalMarks = newMarks.reduce((sum, mark) => sum + mark, 0);
+            setIsSubmitted(true);
+            setShowResults(true);
+            if (user && userId && username && email) {
+                saveQuizResults(totalMarks, time);
+            } else {
+                setSaveStatus('Please log in to submit quiz results.');
+            }
         }
-    }, [isComplete, isTimerRunning, time, task.id]);
+    };
 
-    const saveQuizResults = async (finalResults, finalTotalTime) => {
-        if (!user || !userId || !username || !email) {
-            setSaveStatus('Error: Please log in to submit quiz results.');
-            console.warn("User data missing", { user, userId, username, email });
-            return;
-        }
-
-        const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
-
-        console.log("Preparing to save quiz results:", {
-            quizName: "KINESTHETIC",
-            user,
-            userId,
-            username,
-            email,
-            totalMarks,
-            totalTime: finalTotalTime,
-            date: new Date().toISOString(),
-            taskResults: finalResults
-        });
-
+    const saveQuizResults = async (totalMarks, finalTime) => {
         try {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
-                quizName: "KINESTHETIC",
+                quizName: "READANDWRITE",
                 user,
                 userId,
                 username,
                 email,
-                totalMarks,
-                totalTime: finalTotalTime,
-                date: new Date().toISOString(),
-                taskResults: finalResults
-            }, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                totalMarks: totalMarks,
+                totalTime: finalTime,
+                date: new Date().toISOString()
             });
-
             setSaveStatus('Quiz results saved successfully!');
             console.log('Quiz results saved:', response.data);
         } catch (error) {
             setSaveStatus('Error saving quiz results. Please try again.');
-            console.error('Error saving quiz results:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
-        }
-    };
-
-    const handleNextActivity = () => {
-        if (!isComplete) return;
-
-        setResults(prev => {
-            if (prev.some(r => r.taskId === task.id)) return prev;
-
-            const currentMarks = calculateMarks();
-            const currentTaskResult = {
-                taskId: task.id,
-                timeTaken: time,
-                marks: currentMarks
-            };
-
-            const updatedResults = [...prev, currentTaskResult];
-            return updatedResults;
-        });
-
-        if (currentTaskIndex < tasks.length - 1) {
-            setCurrentTaskIndex(prev => prev + 1);
-            setTime(0);
-            setDroppedItems({});
-        } else {
-            setIsTimerRunning(false);
-            setIsQuizCompleted(true);
-
-            setResults(prev => {
-                const finalResults = prev.some(r => r.taskId === task.id)
-                    ? prev
-                    : [...prev, {
-                        taskId: task.id,
-                        timeTaken: time,
-                        marks: calculateMarks()
-                    }];
-
-                const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
-                const maxPossibleMarks = tasks.length * 5;
-                finalResults.forEach(result => {
-                    console.log(`Task ${result.taskId}: ${result.marks}/5 marks (Time: ${result.timeTaken}s)`);
-                });
-
-                saveQuizResults(finalResults, totalTime);
-
-                alert(`All activities completed!\nTotal Score: ${totalMarks}/${maxPossibleMarks} marks\nTotal Time: ${Math.floor(totalTime / 60)}:${(totalTime % 60).toString().padStart(2, '0')}`);
-
-                return finalResults;
-            });
+            console.error('Error saving quiz results:', error.response?.data || error.message);
         }
     };
 
     const resetQuiz = () => {
-        setCurrentTaskIndex(0);
+        setStepsOrder(Array(5).fill(''));
+        setMarks(Array(5).fill(0));
+        setIsSubmitted(false);
+        setShowResults(false);
         setTime(0);
-        setTotalTime(0);
-        setStartTime(null);
-        setDroppedItems({});
-        setResults([]);
         setIsTimerRunning(false);
-        setIsQuizCompleted(false);
         setSaveStatus(null);
+        setCurrentQuestionIndex(0);
     };
 
     const formatTime = (seconds) => {
@@ -365,11 +186,29 @@ const Kinesthetic = () => {
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
+    const getEncouragementMessage = () => {
+        const totalPercentage = (marks.reduce((sum, mark) => sum + mark, 0) / (questions.length * 5)) * 100;
+        if (totalPercentage === 100) return "🌟 Perfect! You're a sequencing master! 🌟";
+        if (totalPercentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
+        if (totalPercentage >= 60) return "👍 Good job! Keep practicing! 👍";
+        if (totalPercentage >= 40) return "😊 Nice try! Practice makes perfect! 😊";
+        return "🌈 Don't worry! Learning is fun! Try again! 🌈";
+    };
+
+    const getScoreColor = () => {
+        const totalPercentage = (marks.reduce((sum, mark) => sum + mark, 0) / (questions.length * 5)) * 100;
+        if (totalPercentage >= 80) return "text-green-600";
+        if (totalPercentage >= 60) return "text-yellow-600";
+        return "text-red-500";
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
             <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
+
+            <Header></Header>
 
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
@@ -377,53 +216,79 @@ const Kinesthetic = () => {
                         {saveStatus}
                     </div>
                 )}
+                {showResults && (
+                    <div className="mb-8 bg-white/95 rounded-3xl p-6 border-4 border-green-400 shadow-2xl">
+                        <h2 className="text-2xl font-bold text-green-800 mb-4">Quiz Results</h2>
+                        <div className={`text-4xl font-bold mb-6 ${getScoreColor()}`}>
+                            Total Score: {marks.reduce((sum, mark) => sum + mark, 0)} / {questions.length * 5}
+                        </div>
+                        <p className="text-2xl font-bold text-indigo-700 mb-4">
+                            {getEncouragementMessage()}
+                        </p>
+                        {questions.map((question, index) => (
+                            <div key={index} className="p-4 bg-gray-100 rounded-lg mb-2">
+                                <p className="font-semibold">Question {index + 1}: {question.scenario}</p>
+                                <p>Score: {marks[index]} / 5</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                <div className="text-center mb-8">
+                <div className="text-center mb-16">
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🧠</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 Test 2 - Kinesthetic Learning
+                            🪄 Test 1 - Read and Write
                         </h1>
+                        <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
+                        <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
                     </div>
                     <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
                         <p className="text-2xl text-purple-800 font-bold mb-4">
-                            Hi {username || 'Student'}! 👋 Let's test your drag and drop skills!
+                            Hi {username || 'Student'}! 👋 {questions[currentQuestionIndex].scenario}
                         </p>
                         <p className="text-lg text-blue-700">
-                            🌟 Drag the images to their correct positions! 🌟
+                            🌟 Put the steps in the correct order to help Ruwan succeed! 🌟
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
-                    {!isQuizCompleted ? (
-                        <>
-                            <h2 className="text-3xl font-semibold text-center mb-2 text-purple-800">
-                                Kinesthetic Test {task.id} of {tasks.length}
-                            </h2>
-                            <h3 className="text-xl font-medium text-center mb-6 text-blue-700">
-                                Drag and Drop to correct Position
-                            </h3>
-
-                            <div className="border border-gray-400 grid grid-cols-5 gap-4 p-4 mb-6 bg-gray-50 rounded-xl">
-                                {task.images.map((img) => (
-                                    <div
-                                        key={img.id}
-                                        draggable
-                                        onDragStart={(e) => handleDragStart(e, img.id)}
-                                        className="bg-white w-24 h-24 flex items-center justify-center cursor-move hover:bg-blue-50 transition-colors border-2 border-gray-300 rounded-lg shadow-md hover:shadow-lg"
-                                    >
-                                        <img src={img.src} alt={img.id} className="w-12 h-12" />
-                                    </div>
-                                ))}
+                <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex-1 flex flex-col items-center">
+                    {!showResults ? (
+                        <div className="space-y-8 flex-1 w-full">
+                            <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-8 border-2 border-dashed border-blue-300">
+                                <div className="mb-6 text-center">
+                                    <h2 className="text-3xl font-bold text-purple-800 bg-yellow-200 p-4 rounded-lg inline-block">
+                                        Scenario: {questions[currentQuestionIndex].scenario}
+                                    </h2>
+                                </div>
+                                <div className="flex items-center mb-4 justify-center">
+                                    <span className="text-4xl mr-4">📝</span>
+                                    <p className="text-2xl font-bold text-purple-800 text-center">
+                                        Put (1-5) Numbers in correct order to the given box
+                                    </p>
+                                </div>
+                                <div className="mt-6 space-y-4">
+                                    {questions[currentQuestionIndex].steps.map((step, index) => (
+                                        <div key={index} className="flex items-center gap-4">
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="5"
+                                                value={stepsOrder[index]}
+                                                onChange={(e) => handleOrderChange(index, e.target.value)}
+                                                className="w-16 p-2 border-2 border-yellow-400 rounded-lg text-center"
+                                                disabled={isSubmitted}
+                                            />
+                                            <p className="text-lg text-gray-700">{step}</p>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
                                 <span className="text-2xl mr-6 font-bold text-blue-800">
-                                    ⏱️ Time: {formatTime(totalTime)}
-                                </span>
-                                <span className="text-lg mr-6 text-gray-600">
-                                    Current Task: {formatTime(time)}
+                                    ⏱️ Time: {formatTime(time)}
                                 </span>
                                 <button
                                     onClick={handleStartTimer}
@@ -434,78 +299,70 @@ const Kinesthetic = () => {
                                 </button>
                             </div>
 
-                            <div className="space-y-4 mb-6">
-                                {task.options.map((option, index) => (
-                                    <div
-                                        key={index}
-                                        onDrop={(e) => handleDrop(e, option)}
-                                        onDragOver={handleDragOver}
-                                        className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 flex justify-between items-center rounded-xl border-2 border-dashed border-blue-300 hover:border-purple-400 transition-colors"
-                                    >
-                                        <span className="font-bold text-lg text-gray-800">
-                                            {index + 1}. {option}
-                                        </span>
-                                        <div className="w-28 h-20 bg-white rounded-lg border border-gray-300 shadow-inner flex items-center justify-center">
-                                            {droppedItems[option] ? (
-                                                <img
-                                                    src={task.images.find(img => img.id === droppedItems[option])?.src}
-                                                    alt={droppedItems[option]}
-                                                    className="w-16 h-16"
-                                                />
-                                            ) : (
-                                                <span className="text-gray-400 italic">Drop here</span>
-                                            )}
+                            <div className="flex justify-center mt-10">
+                                <button
+                                    onClick={handleNext}
+                                    disabled={!isTimerRunning || stepsOrder.filter(val => val).length !== 5 || isSubmitted}
+                                    className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
+                                >
+                                    {currentQuestionIndex < questions.length - 1 ? "Next" : "Submit"}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center space-y-8 flex-1 w-full max-w-3xl">
+                            <div className="bg-gradient-to-r from-yellow-200 to-pink-200 rounded-2xl p-8 border-4 border-yellow-400">
+                                <h2 className="text-5xl font-bold text-purple-800 mb-6">🎊 Quiz Results! 🎊</h2>
+                                <div className={`text-8xl font-bold mb-6 ${getScoreColor()}`}>
+                                    {marks.reduce((sum, mark) => sum + mark, 0)} / {questions.length * 5}
+                                </div>
+                                <div className="text-3xl font-bold text-indigo-700 mb-4">
+                                    {getEncouragementMessage()}
+                                </div>
+                            </div>
+
+                            <div className="space-y-6 flex-1 overflow-y-auto w-full">
+                                {questions.map((question, index) => (
+                                    <div key={index} className="p-6 rounded-xl border-2 bg-gray-100 text-center">
+                                        <p className="font-semibold text-gray-800 text-xl mb-3">Question {index + 1}: {question.scenario}</p>
+                                        <div className="grid grid-cols-1 gap-4 justify-items-center">
+                                            {question.steps.map((step, stepIndex) => (
+                                                <div key={stepIndex} className={`p-2 rounded ${question.correctOrder[stepIndex] === parseInt(stepsOrder[stepIndex]) - 1 ? 'bg-green-100' : 'bg-red-100'}`}>
+                                                    <p>Step {stepIndex + 1}: {step}</p>
+                                                    <p><strong>Your order:</strong> {stepsOrder[stepIndex] || 'No order'}</p>
+                                                    <p><strong>Correct order:</strong> {question.correctOrder[stepIndex] + 1}</p>
+                                                </div>
+                                            ))}
                                         </div>
+                                        <p className="mt-2">Score: {marks[index]} / 5</p>
                                     </div>
                                 ))}
                             </div>
 
                             <button
-                                onClick={handleNextActivity}
-                                disabled={!isComplete}
-                                className={`w-full py-4 text-xl font-bold rounded-full transition-colors
-                                    ${isComplete ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-400 cursor-not-allowed text-gray-200'}`}
-                            >
-                                {currentTaskIndex < tasks.length - 1 ? "Next Activity" : "Finish Test"}
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <h2 className="text-4xl font-bold text-center text-purple-900 mb-4">
-                                🎉 Congratulations! You completed all activities!
-                            </h2>
-                            <div className="text-center mb-6">
-                                <p className="text-xl font-semibold mb-2 text-green-800">
-                                    Total Time Taken: {formatTime(totalTime)}
-                                </p>
-                                <p className="text-xl font-semibold text-green-800">
-                                    Total Marks: {results.reduce((acc, r) => acc + r.marks, 0)} / {tasks.length * 5}
-                                </p>
-                            </div>
-                            <div className="space-y-2 mb-8 max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border-2 border-green-400">
-                                {results.map(r => (
-                                    <p key={r.taskId} className="text-lg text-gray-700">
-                                        Task {r.taskId}: {r.marks} / 5 marks (Time: {formatTime(r.timeTaken)})
-                                    </p>
-                                ))}
-                            </div>
-                            <button
                                 onClick={resetQuiz}
-                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full text-xl transition-colors"
+                                className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
                             >
-                                Restart Quiz
+                                🔄 Try Again! 🔄
                             </button>
-                            <div className="mt-6 text-center">
-                                <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    <Home size={24} /> Back to Home
-                                </Link>
-                            </div>
-                        </>
+                        </div>
                     )}
+                </div>
+
+                <div className="text-center mt-8">
+                    <Link to="/">
+                        <button
+                            className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                            aria-label="Back to home"
+                        >
+                            <Home className="mr-3 h-5 w-5" />
+                            🏠 Home
+                        </button>
+                    </Link>
                 </div>
             </div>
         </div>
     );
 };
 
-export default Kinesthetic;
+export default ReadWrite;
