@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Home, Save } from 'lucide-react';
 import Header from "@/components/Header.tsx";
 
-// Define types for the question structure
 interface Question {
   id: number;
   text: string;
@@ -13,303 +12,277 @@ interface Question {
   options: string[];
 }
 
-// Define types for the quiz structure
-interface Quiz {
-  quizName: string;
+interface Task {
+  id: number;
   youtubeUrl: string;
   questions: Question[];
 }
 
+interface QuizPayload {
+  quizName: string;
+  tasks: Task[];
+}
+
 const SaveVisualQuiz: React.FC = () => {
-  const [quiz, setQuiz] = useState<Quiz>({
-    quizName: 'VISUAL',
-    youtubeUrl: 'https://youtu.be/haaRTKm8ePQ?si=JcCRwBH2b21RLlCj',
-    questions: [
-      {
-        id: 1,
-        text: '',
-        pauseAt: 0,
-        answer: '',
-        options: ['', '', '', '']
-      }
-    ]
-  });
-  const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Handle input changes for quiz-level fields
-  const handleQuizChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setQuiz(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle question field changes
-  const handleQuestionChange = (index: number, field: string, value: string | number) => {
-    setQuiz(prev => {
-      const newQuestions = [...prev.questions];
-      newQuestions[index] = { ...newQuestions[index], [field]: value };
-      return { ...prev, questions: newQuestions };
-    });
-  };
-
-  // Handle option changes
-  const handleOptionChange = (questionIndex: number, optionIndex: number, value: string) => {
-    setQuiz(prev => {
-      const newQuestions = [...prev.questions];
-      newQuestions[questionIndex] = {
-        ...newQuestions[questionIndex],
-        options: newQuestions[questionIndex].options.map((opt, idx) =>
-          idx === optionIndex ? value : opt
-        )
-      };
-      return { ...prev, questions: newQuestions };
-    });
-  };
-
-  // Add a new question
-  const addQuestion = () => {
-    setQuiz(prev => ({
-      ...prev,
+  const [quizName, setQuizName] = useState('VISUAL');
+  const [tasks, setTasks] = useState<Task[]>([
+    {
+      id: 1,
+      youtubeUrl: '',
       questions: [
-        ...prev.questions,
         {
-          id: prev.questions.length + 1,
+          id: 1,
           text: '',
           pauseAt: 0,
           answer: '',
           options: ['', '', '', '']
         }
       ]
-    }));
+    }
+  ]);
+
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Handle quiz name
+  const handleQuizNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuizName(e.target.value);
   };
 
-  // Remove a question
-  const removeQuestion = (index: number) => {
-    setQuiz(prev => ({
+  // Handle YouTube URL for a task
+  const handleYoutubeUrlChange = (taskIndex: number, value: string) => {
+    setTasks(prev => {
+      const updated = [...prev];
+      updated[taskIndex].youtubeUrl = value;
+      return updated;
+    });
+  };
+
+  // Handle question change inside a task
+  const handleQuestionChange = (taskIndex: number, questionIndex: number, field: string, value: string | number) => {
+    setTasks(prev => {
+      const updated = [...prev];
+      updated[taskIndex].questions[questionIndex] = {
+        ...updated[taskIndex].questions[questionIndex],
+        [field]: value
+      };
+      return updated;
+    });
+  };
+
+  // Handle options change
+  const handleOptionChange = (taskIndex: number, questionIndex: number, optionIndex: number, value: string) => {
+    setTasks(prev => {
+      const updated = [...prev];
+      const options = updated[taskIndex].questions[questionIndex].options.map((opt, i) =>
+          i === optionIndex ? value : opt
+      );
+      updated[taskIndex].questions[questionIndex].options = options;
+      return updated;
+    });
+  };
+
+  const addTask = () => {
+    setTasks(prev => [
       ...prev,
-      questions: prev.questions
-        .filter((_, idx) => idx !== index)
-        .map((q, idx) => ({ ...q, id: idx + 1 }))
-    }));
+      {
+        id: prev.length + 1,
+        youtubeUrl: '',
+        questions: [
+          {
+            id: 1,
+            text: '',
+            pauseAt: 0,
+            answer: '',
+            options: ['', '', '', '']
+          }
+        ]
+      }
+    ]);
   };
 
-  // Validate quiz data before submission
+  const addQuestion = (taskIndex: number) => {
+    setTasks(prev => {
+      const updated = [...prev];
+      updated[taskIndex].questions.push({
+        id: updated[taskIndex].questions.length + 1,
+        text: '',
+        pauseAt: 0,
+        answer: '',
+        options: ['', '', '', '']
+      });
+      return updated;
+    });
+  };
+
+  const removeQuestion = (taskIndex: number, questionIndex: number) => {
+    setTasks(prev => {
+      const updated = [...prev];
+      updated[taskIndex].questions.splice(questionIndex, 1);
+      updated[taskIndex].questions = updated[taskIndex].questions.map((q, idx) => ({ ...q, id: idx + 1 }));
+      return updated;
+    });
+  };
+
   const validateQuiz = (): boolean => {
-    if (!quiz.quizName.trim()) {
+    if (!quizName.trim()) {
       setError('Quiz name is required');
       return false;
     }
-    if (!quiz.youtubeUrl.trim()) {
-      setError('YouTube URL is required');
-      return false;
-    }
-    for (const question of quiz.questions) {
-      if (!question.text.trim()) {
-        setError('All questions must have text');
+
+    for (const task of tasks) {
+      if (!task.youtubeUrl.trim()) {
+        setError('Each task must have a YouTube URL');
         return false;
       }
-      if (question.pauseAt < 0) {
-        setError('Pause time cannot be negative');
-        return false;
-      }
-      if (!question.answer.trim()) {
-        setError('All questions must have an answer');
-        return false;
-      }
-      if (question.options.some(opt => !opt.trim())) {
-        setError('All options must be filled');
-        return false;
+
+      for (const question of task.questions) {
+        if (!question.text.trim() || !question.answer.trim() || question.pauseAt < 0 || question.options.some(opt => !opt.trim())) {
+          setError('All questions must be valid and fully filled');
+          return false;
+        }
       }
     }
+
     return true;
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSaveStatus(null);
 
-    if (!validateQuiz()) {
-      return;
-    }
+    if (!validateQuiz()) return;
+
+    const payload: QuizPayload = { quizName, tasks };
 
     try {
-      const response = await axios.post('http://localhost:5000/api/v1/quizzes/visual/questions', quiz);
+      const res = await axios.post('http://localhost:5000/api/v1/quizzes/visual/questions', payload);
       setSaveStatus('Quiz saved successfully!');
-      console.log('Quiz saved:', response.data);
-    } catch (error: any) {
-      setError('Failed to save quiz: ' + error.message);
-      console.error('Error saving quiz:', error);
+      console.log(res.data);
+    } catch (err: any) {
+      setError('Failed to save quiz: ' + err.message);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
-      <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
-      <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
-      <div className="absolute bottom- airborne20 left-20 text-4xl animate-pulse">🎈</div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 p-10">
+        <Header />
 
-      <Header />
+        {saveStatus && <div className="p-4 mb-4 bg-green-200 text-green-800 rounded">{saveStatus}</div>}
+        {error && <div className="p-4 mb-4 bg-red-200 text-red-800 rounded">{error}</div>}
 
-      <div className="container mx-auto px-4 py-12">
-        {saveStatus && (
-          <div className="mb-4 p-4 rounded-lg bg-green-100 text-green-700">
-            {saveStatus}
-          </div>
-        )}
-        {error && (
-          <div className="mb-4 p-4 rounded-lg bg-red-100 text-red-700">
-            {error}
-          </div>
-        )}
-
-        <div className="text-center mb-16">
-          <div className="relative">
-            <div className="text-6xl mb-4 animate-bounce">🧠</div>
-            <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-              🪄 Create Visual Quiz
-            </h1>
-            <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
-            <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
-          </div>
-          <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
-            <p className="text-2xl text-purple-800 font-bold mb-4">
-              Create a new visual quiz with questions
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
-          <form onSubmit={handleSubmit}>
-            <div className="mb-8">
-              <label className="block text-lg font-bold text-purple-800 mb-2">
-                Quiz Name
-              </label>
-              <input
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg max-w-5xl mx-auto">
+          <div className="mb-6">
+            <label className="block font-bold mb-2 text-purple-800">Quiz Name</label>
+            <input
                 type="text"
-                name="quizName"
-                value={quiz.quizName}
-                onChange={handleQuizChange}
-                className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                placeholder="Enter quiz name"
-              />
-            </div>
+                value={quizName}
+                onChange={handleQuizNameChange}
+                className="w-full p-3 border rounded-lg"
+            />
+          </div>
 
-            <div className="mb-8">
-              <label className="block text-lg font-bold text-purple-800 mb-2">
-                YouTube URL
-              </label>
-              <input
-                type="text"
-                name="youtubeUrl"
-                value={quiz.youtubeUrl}
-                onChange={handleQuizChange}
-                className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                placeholder="Enter YouTube URL"
-              />
-            </div>
+          {tasks.map((task, taskIndex) => (
+              <div key={taskIndex} className="mb-10 border-2 border-yellow-300 p-6 rounded-xl bg-yellow-50">
+                <h2 className="text-xl font-bold mb-4 text-purple-700">Task {taskIndex + 1}</h2>
 
-            {quiz.questions.map((question, qIndex) => (
-              <div key={qIndex} className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="text-xl font-bold text-purple-800 mb-4">
-                  Question {qIndex + 1}
-                </h3>
                 <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Question Text
-                  </label>
+                  <label className="block mb-2 text-gray-700">YouTube URL</label>
                   <input
-                    type="text"
-                    value={question.text}
-                    onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
-                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                    placeholder="Enter question text"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Pause At (seconds)
-                  </label>
-                  <input
-                    type="number"
-                    value={question.pauseAt}
-                    onChange={(e) => handleQuestionChange(qIndex, 'pauseAt', parseInt(e.target.value))}
-                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                    placeholder="Enter pause time"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Correct Answer
-                  </label>
-                  <input
-                    type="text"
-                    value={question.answer}
-                    onChange={(e) => handleQuestionChange(qIndex, 'answer', e.target.value)}
-                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                    placeholder="Enter correct answer"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Options
-                  </label>
-                  {question.options.map((option, oIndex) => (
-                    <input
-                      key={oIndex}
                       type="text"
-                      value={option}
-                      onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                      className="w-full p-3 mb-2 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                      placeholder={`Option ${oIndex + 1}`}
-                    />
-                  ))}
+                      value={task.youtubeUrl}
+                      onChange={(e) => handleYoutubeUrlChange(taskIndex, e.target.value)}
+                      className="w-full p-3 border rounded-lg"
+                  />
                 </div>
-                {quiz.questions.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeQuestion(qIndex)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-                  >
-                    Remove Question
-                  </button>
-                )}
-              </div>
-            ))}
 
-            <div className="flex justify-between mb-8">
-              <button
+                {task.questions.map((question, qIndex) => (
+                    <div key={qIndex} className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                      <h4 className="font-semibold mb-2 text-blue-800">Question {qIndex + 1}</h4>
+                      <input
+                          type="text"
+                          placeholder="Question Text"
+                          value={question.text}
+                          onChange={(e) => handleQuestionChange(taskIndex, qIndex, 'text', e.target.value)}
+                          className="w-full mb-2 p-2 border rounded"
+                      />
+                      <input
+                          type="number"
+                          placeholder="Pause At"
+                          value={question.pauseAt}
+                          onChange={(e) => handleQuestionChange(taskIndex, qIndex, 'pauseAt', parseInt(e.target.value))}
+                          className="w-full mb-2 p-2 border rounded"
+                      />
+                      <input
+                          type="text"
+                          placeholder="Correct Answer"
+                          value={question.answer}
+                          onChange={(e) => handleQuestionChange(taskIndex, qIndex, 'answer', e.target.value)}
+                          className="w-full mb-2 p-2 border rounded"
+                      />
+                      {question.options.map((option, optIndex) => (
+                          <input
+                              key={optIndex}
+                              type="text"
+                              placeholder={`Option ${optIndex + 1}`}
+                              value={option}
+                              onChange={(e) => handleOptionChange(taskIndex, qIndex, optIndex, e.target.value)}
+                              className="w-full mb-2 p-2 border rounded"
+                          />
+                      ))}
+                      {task.questions.length > 1 && (
+                          <button
+                              type="button"
+                              onClick={() => removeQuestion(taskIndex, qIndex)}
+                              className="text-red-600 mt-2"
+                          >
+                            Remove Question
+                          </button>
+                      )}
+                    </div>
+                ))}
+
+                <button
+                    type="button"
+                    onClick={() => addQuestion(taskIndex)}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  ➕ Add Question
+                </button>
+              </div>
+          ))}
+
+          <div className="flex justify-between items-center mt-10">
+            <button
                 type="button"
-                onClick={addQuestion}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-medium"
-              >
-                Add Question
-              </button>
-              <button
+                onClick={addTask}
+                className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600"
+            >
+              ➕ Add Task
+            </button>
+
+            <button
                 type="submit"
-                className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-xl shadow-lg transform hover:scale-110 transition-all duration-300"
-              >
-                <Save className="inline mr-2" />
-                Save Quiz
-              </button>
-            </div>
-          </form>
+                className="bg-purple-600 text-white px-10 py-4 rounded-full text-lg hover:bg-purple-700"
+            >
+              <Save className="inline mr-2" />
+              Save Quiz
+            </button>
+          </div>
 
           <div className="flex justify-center mt-8">
             <Link to="/">
               <button
-                className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-                aria-label="Back to home"
+                  className="bg-gray-700 text-white px-6 py-3 rounded-full shadow-lg hover:bg-gray-800"
               >
-                <Home className="mr-3 h-5 w-5" />
-                🏠 Home
+                <Home className="mr-2 h-5 w-5" />
+                Back Home
               </button>
             </Link>
           </div>
-        </div>
+        </form>
       </div>
-    </div>
   );
 };
 
