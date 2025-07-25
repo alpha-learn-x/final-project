@@ -1,252 +1,196 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-    Home,
-    BookOpen,
-    Target,
-    Award,
-    HelpCircle,
-    ShoppingCart,
-    Play,
-    Pause,
-    Volume2,
-    VolumeX,
-    Globe
-} from 'lucide-react';
-import { Link } from "react-router-dom";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import axios from "axios";
-import Header from "@/components/Header.tsx";
+import React, { useState, useEffect, useRef } from "react";
+import { Link } from 'react-router-dom';
+import { Play, Pause, Home, CheckCircle, XCircle } from 'lucide-react';
+import axios from 'axios';
 
-// Define types for the question structure
-interface Question {
-    id: number;
-    text: string;
-    correctAnswer: string;
-    audioText: string;
-    options: string[];
-}
-
-// Define types for user data
-interface UserData {
-    id?: string;
-    userId?: string;
-    userName?: string;
-    email?: string;
-}
-
-const Auditory: React.FC = () => {
+const Auditory = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
-    const batteryAudioRef = useRef<HTMLAudioElement>(null);
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+    const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<string[]>([]);
-    const [marks, setMarks] = useState<number[]>([]);
-    const [totalMarks, setTotalMarks] = useState<number>(0);
-    const [isPlaying, setIsPlaying] = useState<boolean>(false);
-    const [isBatteryAudioPlaying, setIsBatteryAudioPlaying] = useState<boolean>(false);
-    const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
-    const [userId, setUserId] = useState<string>('');
-    const [username, setUsername] = useState<string>('');
-    const [email, setEmail] = useState<string>('');
-    const [user, setUser] = useState<string>('');
-    const [audioError, setAudioError] = useState<boolean>(false);
-    const [batteryAudioError, setBatteryAudioError] = useState<boolean>(false);
-    const [language, setLanguage] = useState<string>("english");
-    const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [userId, setUserId] = useState('');
+    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
+    const [user, setUser] = useState('');
+    const [audioError, setAudioError] = useState(false);
+    const [startTime, setStartTime] = useState<number | null>(null);
+    const [time, setTime] = useState(0);
+    const [totalTime, setTotalTime] = useState(0);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
-    const [questions, setQuestions] = useState<Question[]>([]);
+    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const [answerFeedback, setAnswerFeedback] = useState<boolean[]>([]);
 
-    // Load quiz questions from backend
+    const [tasks] = useState([
+        {
+            id: 1,
+            questions: [
+                { id: 1, text: "1. What is energy?", correctAnswer: "b", options: ["a) Something you eat for breakfast", "b) The ability to do work", "c) A type of machine", "d) Another word for electricity"] },
+                { id: 2, text: "2. Which two main types of energy are shown first?", correctAnswer: "c", options: ["a) Hot and cold energy", "b) Big and small energy", "c) Stored energy and moving energy", "d) Light and sound energy"] },
+                { id: 3, text: "3. A stretched rubber band has", correctAnswer: "b", options: ["a) Kinetic energy", "b) Potential energy", "c) Sound energy", "d) Nuclear energy"] },
+                { id: 4, text: "4. What energy does a rolling ball have?", correctAnswer: "c", options: ["a) Sleeping energy", "b) Potential energy", "c) Kinetic energy", "d) Elastic energy"] },
+                { id: 5, text: "5. How do scientists measure energy?", correctAnswer: "d", options: ["a) With thermometers", "b) In kilograms", "c) Using rulers", "d) In joules"] }
+            ]
+        },
+        {
+            id: 2,
+            questions: [
+                { id: 1, text: "1. What is heat?", correctAnswer: "b", options: ["a) A type of light", "b) Energy transferred by temperature", "c) A form of sound", "d) A type of motion"] },
+                { id: 2, text: "2. Which source produces heat?", correctAnswer: "c", options: ["a) Wind", "b) Water", "c) Sun", "d) Ice"] },
+                { id: 3, text: "3. What happens when heat is applied to water?", correctAnswer: "b", options: ["a) It freezes", "b) It boils", "c) It shrinks", "d) It disappears"] },
+                { id: 4, text: "4. Which material conducts heat well?", correctAnswer: "c", options: ["a) Wood", "b) Plastic", "c) Metal", "d) Cotton"] },
+                { id: 5, text: "5. How is heat measured?", correctAnswer: "d", options: ["a) In meters", "b) In liters", "c) In grams", "d) In degrees"] }
+            ]
+        },
+        {
+            id: 3,
+            questions: [
+                { id: 1, text: "1. What is light?", correctAnswer: "b", options: ["a) A type of sound", "b) Energy we can see", "c) A form of heat", "d) A type of water"] },
+                { id: 2, text: "2. Which object reflects light?", correctAnswer: "c", options: ["a) Black paper", "b) Dark cloth", "c) Mirror", "d) Rough stone"] },
+                { id: 3, text: "3. What creates light?", correctAnswer: "b", options: ["a) Cold air", "b) A bulb", "c) Ice", "d) Water"] },
+                { id: 4, text: "4. Which color absorbs light?", correctAnswer: "c", options: ["a) White", "b) Yellow", "c) Black", "d) Red"] },
+                { id: 5, text: "5. How does light travel?", correctAnswer: "d", options: ["a) Through sound", "b) In curves", "c) Through water", "d) In straight lines"] }
+            ]
+        },
+        {
+            id: 4,
+            questions: [
+                { id: 1, text: "1. What is sound?", correctAnswer: "b", options: ["a) A type of light", "b) Vibration we can hear", "c) A form of heat", "d) A type of energy"] },
+                { id: 2, text: "2. What makes sound?", correctAnswer: "c", options: ["a) Silence", "b) Light", "c) Vibration", "d) Still air"] },
+                { id: 3, text: "3. Which object produces sound?", correctAnswer: "b", options: ["a) A stone", "b) A drum", "c) Water", "d) A mirror"] },
+                { id: 4, text: "4. How does sound travel?", correctAnswer: "c", options: ["a) Through light", "b) In water only", "c) Through air", "d) Through heat"] },
+                { id: 5, text: "5. What affects sound loudness?", correctAnswer: "d", options: ["a) Color", "b) Size", "c) Shape", "d) Amplitude"] }
+            ]
+        },
+        {
+            id: 5,
+            questions: [
+                { id: 1, text: "1. What is motion?", correctAnswer: "b", options: ["a) A type of sound", "b) Movement of objects", "c) A form of light", "d) A type of heat"] },
+                { id: 2, text: "2. What causes motion?", correctAnswer: "c", options: ["a) Stillness", "b) Silence", "c) Force", "d) Light"] },
+                { id: 3, text: "3. Which object is in motion?", correctAnswer: "b", options: ["a) A parked car", "b) A rolling ball", "c) A closed door", "d) A still book"] },
+                { id: 4, text: "4. What stops motion?", correctAnswer: "c", options: ["a) Speed", "b) Light", "c) Friction", "d) Sound"] },
+                { id: 5, text: "5. How is motion measured?", correctAnswer: "d", options: ["a) In degrees", "b) In joules", "c) In liters", "d) In meters per second"] }
+            ]
+        }
+    ]);
+
     useEffect(() => {
-        const fetchQuiz = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/questions');
-                setQuestions(response.data.questions);
-                setAnswers(Array(response.data.questions.length).fill(''));
-                setMarks(Array(response.data.questions.length).fill(0));
-            } catch (error) {
-                console.error('Error fetching quiz:', error);
-                setSaveStatus('Failed to load quiz questions');
-            }
-        };
-
-        fetchQuiz();
-
-        const userData: UserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
-        setUser(userData.id || '');
-        setUserId(userData.userId || '');
-        setUsername(userData.userName || '');
-        setEmail(userData.email || '');
+        const userDataStr = localStorage.getItem('currentUser');
+        if (!userDataStr) {
+            setSaveStatus('Please log in to start the quiz.');
+            return;
+        }
+        try {
+            const userData = JSON.parse(userDataStr);
+            setUser(userData.id || '');
+            setUserId(userData.userId || '');
+            setUsername(userData.userName || '');
+            setEmail(userData.email || '');
+        } catch (err) {
+            setSaveStatus('Error loading user data. Please log in again.');
+        }
     }, []);
 
-    // Speak text for the current question
-    const speakText = (text: string): void => {
-        if ('speechSynthesis' in window && isSoundEnabled) {
-            window.speechSynthesis.cancel();
+    useEffect(() => {
+        let timer;
+        if (isTimerRunning) {
+            timer = setInterval(() => {
+                setTime(prev => prev + 1);
+                setTotalTime(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [isTimerRunning]);
 
+    const handleStartTimer = () => {
+        if (!isTimerRunning) {
+            setStartTime(new Date());
+            setIsTimerRunning(true);
+        }
+    };
+
+    const speakText = (text) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 0.8;
-            utterance.pitch = 1;
-            utterance.volume = 1;
-
             utterance.onstart = () => setIsPlaying(true);
             utterance.onend = () => setIsPlaying(false);
             utterance.onerror = () => {
                 setIsPlaying(false);
                 setAudioError(true);
             };
-
             window.speechSynthesis.speak(utterance);
             setAudioError(false);
-        } else if (!isSoundEnabled) {
-            setAudioError(true);
-            console.log("Audio muted by user");
         } else {
             setAudioError(true);
-            console.error("Speech synthesis not supported");
         }
     };
 
-    const stopSpeech = (): void => {
+    const stopSpeech = () => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             setIsPlaying(false);
         }
     };
 
-    const toggleBatteryAudio = (): void => {
-        if (batteryAudioRef.current) {
-            if (isBatteryAudioPlaying) {
-                batteryAudioRef.current.pause();
-                setIsBatteryAudioPlaying(false);
-            } else {
-                stopSpeech();
-                if (batteryAudioRef.current.ended) {
-                    batteryAudioRef.current.currentTime = 0;
-                }
-                batteryAudioRef.current.play()
-                    .then(() => {
-                        setIsBatteryAudioPlaying(true);
-                        setBatteryAudioError(false);
-                    })
-                    .catch((error) => {
-                        console.error("Error playing MP3:", error);
-                        setBatteryAudioError(true);
-                        setIsBatteryAudioPlaying(false);
-                    });
-            }
-        } else {
-            console.error("Audio ref not available");
-            setBatteryAudioError(true);
-        }
-    };
-
     useEffect(() => {
-        const audio = batteryAudioRef.current;
-        if (audio) {
-            const handleLoadedData = () => {
-                console.log("Audio loaded successfully");
-                setBatteryAudioError(false);
-            };
-
-            const handleError = (e: Event) => {
-                console.error("Audio loading error:", e);
-                setBatteryAudioError(true);
-            };
-
-            const handleEnded = () => {
-                setIsBatteryAudioPlaying(false);
-            };
-
-            const handlePlay = () => {
-                setIsBatteryAudioPlaying(true);
-            };
-
-            const handlePause = () => {
-                setIsBatteryAudioPlaying(false);
-            };
-
-            audio.addEventListener('loadeddata', handleLoadedData);
-            audio.addEventListener('error', handleError);
-            audio.addEventListener('ended', handleEnded);
-            audio.addEventListener('play', handlePlay);
-            audio.addEventListener('pause', handlePause);
-
-            audio.preload = 'metadata';
-
-            return () => {
-                audio.removeEventListener('loadeddata', handleLoadedData);
-                audio.removeEventListener('error', handleError);
-                audio.removeEventListener('ended', handleEnded);
-                audio.removeEventListener('play', handlePlay);
-                audio.removeEventListener('pause', handlePause);
-            };
+        if (tasks.length > 0 && tasks[currentTaskIndex].questions.length > 0) {
+            speakText(tasks[currentTaskIndex].questions[currentQuestionIndex].text);
         }
-    }, []);
+    }, [currentTaskIndex, currentQuestionIndex]);
 
-    useEffect(() => {
-        if (questions.length > 0) {
-            const timer = setTimeout(() => {
-                speakText(questions[currentQuestionIndex].audioText);
-            }, 500);
-
-            return () => {
-                clearTimeout(timer);
-                if (batteryAudioRef.current && isBatteryAudioPlaying) {
-                    batteryAudioRef.current.pause();
-                    setIsBatteryAudioPlaying(false);
-                }
-            };
-        }
-    }, [currentQuestionIndex, questions]);
-
-    const handleAnswerSelect = (value: string): void => {
+    const handleAnswerSelect = (value) => {
         const newAnswers = [...answers];
-        newAnswers[currentQuestionIndex] = value;
+        newAnswers[currentTaskIndex * 5 + currentQuestionIndex] = value;
         setAnswers(newAnswers);
         setSaveStatus(null);
     };
 
-    const handleClearAnswer = (): void => {
-        const newAnswers = [...answers];
-        newAnswers[currentQuestionIndex] = '';
-        setAnswers(newAnswers);
-        setSaveStatus(null);
-    };
-
-    const handleNext = (): void => {
+    const handleNext = () => {
         stopSpeech();
-        if (batteryAudioRef.current && isBatteryAudioPlaying) {
-            batteryAudioRef.current.pause();
-            setIsBatteryAudioPlaying(false);
-        }
-        if (currentQuestionIndex < questions.length - 1) {
+        if (currentQuestionIndex < tasks[currentTaskIndex].questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
-            setSaveStatus(null);
-        } else if (!isSubmitted) {
-            handleSubmit();
+        } else {
+            if (currentTaskIndex < tasks.length - 1) {
+                setCurrentTaskIndex(currentTaskIndex + 1);
+                setCurrentQuestionIndex(0);
+            }
         }
     };
 
-    const handleSubmit = async (): Promise<void> => {
+    const handleSubmit = () => {
         stopSpeech();
-        if (batteryAudioRef.current && isBatteryAudioPlaying) {
-            batteryAudioRef.current.pause();
-            setIsBatteryAudioPlaying(false);
-        }
         if (!user || !userId || !username || !email) {
             setSaveStatus('Please log in to submit quiz results.');
             return;
         }
 
-        const newMarks = answers.map((answer, index) =>
-            answer === questions[index].correctAnswer ? 1 : 0
-        );
-        const total = newMarks.reduce((sum, mark) => sum + mark, 0);
-        setMarks(newMarks);
-        setTotalMarks(total);
-        setIsSubmitted(true);
+        const marks = answers.map((answer, index) => {
+            const taskIdx = Math.floor(index / 5);
+            const qIdx = index % 5;
+            return answer === tasks[taskIdx].questions[qIdx].correctAnswer ? 1 : 0;
+        });
 
+        const feedback = answers.map((answer, index) => {
+            const taskIdx = Math.floor(index / 5);
+            const qIdx = index % 5;
+            return answer === tasks[taskIdx].questions[qIdx].correctAnswer;
+        });
+
+        setAnswerFeedback(feedback);
+
+        const totalMarks = marks.reduce((sum, mark) => sum + mark, 0);
+        if (startTime) {
+            setTotalTime(Math.floor((new Date().getTime() - startTime.getTime()) / 1000));
+        }
+
+        setIsSubmitted(true);
+        saveQuizResults(totalMarks, totalTime);
+    };
+
+    const saveQuizResults = async (totalMarks, finalTotalTime) => {
         try {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
                 quizName: "AUDITORY",
@@ -254,80 +198,42 @@ const Auditory: React.FC = () => {
                 userId,
                 username,
                 email,
-                totalMarks: total,
+                totalMarks,
+                totalTime: finalTotalTime,
                 date: new Date().toISOString()
             });
             setSaveStatus('Quiz results saved successfully!');
-            console.log('Quiz results saved:', response.data);
-        } catch (error: any) {
+        } catch (error) {
             setSaveStatus('Error saving quiz results. Please try again.');
-            console.error('Error saving quiz results:', error.response?.data || error.message);
         }
     };
 
-    const handleReplayAudio = (): void => {
-        if (batteryAudioRef.current && isBatteryAudioPlaying) {
-            batteryAudioRef.current.pause();
-            setIsBatteryAudioPlaying(false);
-        }
-        speakText(questions[currentQuestionIndex].audioText);
-    };
-
-    const handleLanguageChange = (value: string): void => {
-        setLanguage(value);
-        setSaveStatus(null);
-    };
-
-    const toggleSound = (): void => {
-        setIsSoundEnabled(prev => !prev);
-        if (isPlaying) {
-            stopSpeech();
-        }
-        if (batteryAudioRef.current && isBatteryAudioPlaying) {
-            batteryAudioRef.current.pause();
-            setIsBatteryAudioPlaying(false);
-        }
-    };
-
-    const resetQuiz = (): void => {
-        stopSpeech();
-        if (batteryAudioRef.current && isBatteryAudioPlaying) {
-            batteryAudioRef.current.pause();
-            setIsBatteryAudioPlaying(false);
-        }
+    const resetQuiz = () => {
+        setCurrentTaskIndex(0);
         setCurrentQuestionIndex(0);
-        setAnswers(Array(questions.length).fill(''));
-        setMarks(Array(questions.length).fill(0));
-        setTotalMarks(0);
+        setTime(0);
+        setTotalTime(0);
+        setStartTime(null);
+        setAnswers(Array(tasks.length * 5).fill(''));
+        setIsTimerRunning(false);
         setIsSubmitted(false);
-        setAudioError(false);
-        setBatteryAudioError(false);
+        setAnswerFeedback([]);
         setSaveStatus(null);
     };
 
-    const getEncouragementMessage = (): string => {
-        const percentage = (totalMarks / questions.length) * 100;
-        if (percentage === 100) return "🌟 Perfect! You're an audio expert! 🌟";
-        if (percentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
-        if (percentage >= 60) return "👍 Good job! Keep learning! 👍";
-        if (percentage >= 40) return "😊 Nice try! Practice makes perfect! 😊";
-        return "🌈 Don't worry! Learning is fun! Try again! 🌈";
+    const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
-    const getScoreColor = (): string => {
-        const percentage = (totalMarks / questions.length) * 100;
-        if (percentage >= 80) return "text-green-600";
-        if (percentage >= 60) return "text-yellow-600";
-        return "text-red-500";
-    };
+    const allQuestionsAnswered = answers.length === tasks.length * 5 && answers.every(ans => ans);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
             <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
-
-            <Header />
 
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
@@ -336,250 +242,143 @@ const Auditory: React.FC = () => {
                     </div>
                 )}
 
-                <div className="fixed top-20 right-4 z-50">
-                    <Button
-                        onClick={toggleSound}
-                        className={`p-3 rounded-full shadow-lg ${
-    isSoundEnabled
-        ? 'bg-green-500 hover:bg-green-600'
-        : 'bg-red-500 hover:bg-red-600'
-} text-white transition-all duration-300`}
-                        title={isSoundEnabled ? 'Disable Sound' : 'Enable Sound'}
-                    >
-                        {isSoundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
-                    </Button>
-                </div>
-
-                <div className="text-center mb-16">
+                <div className="text-center mb-8">
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🎧</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🎵 Test 4 - Auditory
+                            🪄 Test 1 - Auditory Learning
                         </h1>
-                        <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
-                        <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
                     </div>
                     <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
                         <p className="text-2xl text-purple-800 font-bold mb-4">
-                            Hi {username || 'Student'}! 👋 Listen to the audio and answer the question!
+                            Hi {username || 'Student'}! 👋 Listen to the audio and answer the questions!
                         </p>
                         <p className="text-lg text-blue-700">
-                            🎵 Audio will play automatically - listen carefully! 🎵
+                            🌟 Audio will play automatically - listen carefully! 🌟
                         </p>
                     </div>
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex-1 flex flex-col items-center">
-                    <audio
-                        ref={batteryAudioRef}
-                        preload="metadata"
-                        onError={() => setBatteryAudioError(true)}
-                        onLoadedData={() => setBatteryAudioError(false)}
-                    >
-                        <source src="/what_does_a_battery_do.mp3" type="audio/mpeg" />
-                        <source src="/what_does_a_battery_do.wav" type="audio/wav" />
-                        Your browser does not support the audio element.
-                    </audio>
+                <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
+                    {!isSubmitted ? (
+                        <>
+                            <h2 className="text-3xl font-semibold text-center mb-2 text-purple-800">
+                                Auditory Test {tasks[currentTaskIndex].id} of {tasks.length}
+                            </h2>
+                            <h3 className="text-xl font-medium text-center mb-6 text-blue-700">
+                                Listen and Select the Correct Answer
+                            </h3>
 
-                    {questions.length > 0 && !isSubmitted ? (
-                        <div className="space-y-8 w-full">
-                            <div className="text-center mb-4">
-                                <span className="bg-blue-500 text-white px-4 py-2 rounded-full text-lg font-bold">
-                                    Question {currentQuestionIndex + 1} of {questions.length}
+                            <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
+                                <span className="text-2xl mr-6 font-bold text-blue-800">
+                                    ⏱️ Time: {formatTime(totalTime)}
                                 </span>
-                            </div>
-
-                            <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-8 border-2 border-dashed border-blue-300 transform hover:scale-105 transition-all duration-300">
-                                <div className="flex items-center mb-6 justify-center">
-                                    <span className="text-4xl mr-4">🎙️</span>
-                                    <p className="text-2xl font-bold text-purple-800 text-center">
-                                        {questions[currentQuestionIndex].text}
-                                    </p>
-                                </div>
-
-                                <div className="flex justify-center items-center space-x-4 mb-6 flex-wrap gap-4">
-                                    <Button
-                                        onClick={handleReplayAudio}
-                                        disabled={isPlaying || !isSoundEnabled}
-                                        className={`flex items-center space-x-2 px-6 py-3 rounded-full font-bold transition-all duration-300 ${
-    isPlaying || !isSoundEnabled
-        ? 'bg-gray-300 cursor-not-allowed'
-        : 'bg-blue-500 hover:bg-blue-600 text-white hover:scale-105'
-}`}
-                                    >
-                                        {isPlaying ? (
-                                            <>
-                                                <Volume2 className="h-5 w-5 animate-pulse" />
-                                                <span>Playing...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Play className="h-5 w-5" />
-                                                <span>🔊 Replay Audio</span>
-                                            </>
-                                        )}
-                                    </Button>
-
-                                    {isPlaying && (
-                                        <Button
-                                            onClick={stopSpeech}
-                                            className="flex items-center space-x-2 px-6 py-3 rounded-full font-bold bg-red-500 hover:bg-red-600 text-white transition-all duration-300 hover:scale-105"
-                                        >
-                                            <Pause className="h-5 w-5" />
-                                            <span>Stop</span>
-                                        </Button>
-                                    )}
-
-                                    <Button
-                                        onClick={toggleBatteryAudio}
-                                        disabled={!isSoundEnabled || batteryAudioError}
-                                        className={`flex items-center space-x-2 px-6 py-3 rounded-full font-bold transition-all duration-300 ${
-    batteryAudioError
-        ? 'bg-gray-400 cursor-not-allowed'
-        : isBatteryAudioPlaying
-            ? 'bg-orange-500 hover:bg-orange-600 text-white hover:scale-105'
-            : 'bg-green-500 hover:bg-green-600 text-white hover:scale-105'
-} ${!isSoundEnabled ? 'bg-gray-300 cursor-not-allowed' : ''}`}
-                                    >
-                                        {batteryAudioError ? (
-                                            <>
-                                                <VolumeX className="h-5 w-5" />
-                                                <span>Audio Error</span>
-                                            </>
-                                        ) : isBatteryAudioPlaying ? (
-                                            <>
-                                                <Pause className="h-5 w-5" />
-                                                <span>Pause Battery Audio</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Play className="h-5 w-5" />
-                                                <span>🔋 Play Battery Audio</span>
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-
-                                {(audioError || batteryAudioError) && (
-                                    <div className="text-center text-red-600 mb-4">
-                                        <p>🔇 Audio not available - please read the question above</p>
-                                        {batteryAudioError && (
-                                            <p className="text-sm">Make sure the MP3 file is in the public directory</p>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {questions[currentQuestionIndex].options.map((option, idx) => (
-                                        <Button
-                                            key={idx}
-                                            onClick={() => handleAnswerSelect(option)}
-                                            disabled={isSubmitted}
-                                            className={`px-6 py-4 rounded-xl text-lg font-medium border-2 transition-all duration-300 hover:scale-105 ${
-    answers[currentQuestionIndex] === option
-        ? 'bg-purple-500 text-white border-purple-600 shadow-lg'
-        : 'bg-gradient-to-r from-pink-200 to-purple-200 text-purple-800 border-purple-300 hover:from-pink-300 hover:to-purple-300'
-} ${isSubmitted ? 'cursor-not-allowed' : ''}`}
-                                        >
-                                            {option}
-                                        </Button>
-                                    ))}
-                                </div>
-
-                                {answers[currentQuestionIndex] && (
-                                    <div className="text-center mt-4">
-                                        <Button
-                                            onClick={handleClearAnswer}
-                                            disabled={isSubmitted || !answers[currentQuestionIndex]}
-                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                        >
-                                            Clear Answer
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-
-                            {currentQuestionIndex < questions.length - 1 ? (
-                                <div className="flex justify-center mt-10">
-                                    <Button
-                                        onClick={handleNext}
-                                        disabled={!answers[currentQuestionIndex] || isSubmitted}
-                                        className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
-                                    >
-                                        Next!
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div className="flex justify-center mt-10">
-                                    <Button
-                                        onClick={handleNext}
-                                        disabled={!answers[currentQuestionIndex] || isSubmitted}
-                                        className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
-                                    >
-                                        Submit My Answers!
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="text-center space-y-8 w-full max-w-4xl">
-                            <div className="bg-gradient-to-r from-yellow-200 to-pink-200 rounded-2xl p-8 border-4 border-yellow-400">
-                                <h2 className="text-5xl font-bold text-purple-800 mb-6">🎊 Quiz Results! 🎊</h2>
-                                <div className={`text-8xl font-bold mb-6 ${getScoreColor()}`}>
-                                    {totalMarks} / {questions.length}
-                                </div>
-                                <div className="text-3xl font-bold text-indigo-700 mb-4">
-                                    {getEncouragementMessage()}
-                                </div>
-                                <div className="text-lg text-gray-600">
-                                    Score: {Math.round((totalMarks / questions.length) * 100)}%
-                                </div>
-                            </div>
-
-                            <div className="space-y-6 max-h-96 overflow-y-auto">
-                                {questions.map((question, index) => (
-                                    <div key={question.id} className={`p-6 rounded-xl border-2 ${marks[index] === 1 ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'}`}>
-                                        <p className="font-semibold text-gray-800 text-lg mb-4">Q{index + 1}: {question.text}</p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="text-center">
-                                                <strong>Your answer:</strong><br/>
-                                                <span className={marks[index] === 1 ? 'text-green-700' : 'text-red-700'}>
-                                                    {answers[index] || 'No answer'}
-                                                </span>
-                                            </div>
-                                            <div className="text-center">
-                                                <strong>Correct answer:</strong><br/>
-                                                <span className="text-green-700">{question.correctAnswer}</span>
-                                            </div>
-                                        </div>
-                                        <div className="mt-4 text-center">
-                                            {marks[index] === 1 ? (
-                                                <span className="text-green-600 font-bold text-xl">✅ Correct!</span>
-                                            ) : (
-                                                <span className="text-red-600 font-bold text-xl">❌ Incorrect</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                <Button
-                                    onClick={resetQuiz}
-                                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                                <span className="text-lg mr-6 text-gray-600">
+                                    Current Task: {formatTime(time)}
+                                </span>
+                                <button
+                                    onClick={handleStartTimer}
+                                    disabled={isTimerRunning}
+                                    className="bg-green-500 text-white px-6 py-3 rounded-full disabled:opacity-50 disabled:bg-gray-300 hover:bg-green-600 transition-colors font-bold text-lg"
                                 >
-                                    🔄 Try Again
-                                </Button>
-                                <Link to="/">
-                                    <Button
-                                        className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-                                    >
-                                        <Home className="mr-3 h-5 w-5" />
-                                        🏠 Home
-                                    </Button>
+                                    {isTimerRunning ? "⏰ Timer Running..." : "🚀 Start Now"}
+                                </button>
+                            </div>
+
+                            <div className="space-y-4 mb-6">
+                                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border-2 border-dashed border-blue-300 hover:border-purple-400 transition-colors">
+                                    <div className="flex items-center mb-4 justify-center">
+                                        <span className="text-4xl mr-4">🎙️</span>
+                                        <p className="text-2xl font-bold text-purple-800 text-center">
+                                            {tasks[currentTaskIndex].questions[currentQuestionIndex].text}
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {tasks[currentTaskIndex].questions[currentQuestionIndex].options.map((option, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => handleAnswerSelect(option[0])}
+                                                className={`px-6 py-4 rounded-xl text-lg font-medium border-2 transition-all duration-300 ${answers[currentTaskIndex * 5 + currentQuestionIndex] === option[0] ? 'bg-purple-500 text-white border-purple-600 shadow-lg' : 'bg-gradient-to-r from-pink-200 to-purple-200 text-purple-800 border-purple-300 hover:from-pink-300 hover:to-purple-300'}`}
+                                            >
+                                                {option}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-center mt-4">
+                                        <button
+                                            onClick={() => speakText(tasks[currentTaskIndex].questions[currentQuestionIndex].text)}
+                                            disabled={isPlaying}
+                                            className={`flex items-center space-x-2 px-6 py-3 rounded-full font-bold transition-all duration-300 ${isPlaying ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 text-white hover:scale-105'}`}
+                                        >
+                                            {isPlaying ? (
+                                                <>
+                                                    <Play className="h-5 w-5 animate-pulse" />
+                                                    <span>Playing...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Play className="h-5 w-5" />
+                                                    <span>🔊 Replay Audio</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        {isPlaying && (
+                                            <button
+                                                onClick={stopSpeech}
+                                                className="flex items-center space-x-2 px-6 py-3 rounded-full font-bold bg-red-500 hover:bg-red-600 text-white transition-all duration-300 hover:scale-105 ml-4"
+                                            >
+                                                <Pause className="h-5 w-5" />
+                                                <span>Stop</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={currentQuestionIndex === tasks[currentTaskIndex].questions.length - 1 && currentTaskIndex === tasks.length - 1 ? handleSubmit : handleNext}
+                                disabled={!answers[currentTaskIndex * 5 + currentQuestionIndex] && currentQuestionIndex < tasks[currentTaskIndex].questions.length - 1}
+                                className={`w-full py-4 text-xl font-bold rounded-full transition-colors ${currentQuestionIndex === tasks[currentTaskIndex].questions.length - 1 && currentTaskIndex === tasks.length - 1 ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
+                            >
+                                {currentQuestionIndex < tasks[currentTaskIndex].questions.length - 1 ? 'Next' : currentTaskIndex < tasks.length - 1 ? 'Next Task' : 'Submit'}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-4xl font-bold text-center text-purple-900 mb-4">
+                                🎉 Congratulations! You completed all activities!
+                            </h2>
+                            <div className="text-center mb-6">
+                                <p className="text-xl font-semibold mb-2 text-green-800">
+                                    Total Time Taken: {formatTime(totalTime)}
+                                </p>
+                                <p className="text-xl font-semibold text-green-800">
+                                    Total Marks: {answers.filter((answer, index) => answer === tasks[Math.floor(index / 5)].questions[index % 5].correctAnswer).length} / {tasks.length * 5}
+                                </p>
+                            </div>
+                            <div className="space-y-2 mb-8 max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border-2 border-green-400">
+                                {tasks.map(task => {
+                                    const taskAnswers = answers.slice((task.id - 1) * 5, task.id * 5);
+                                    const taskMarks = taskAnswers.filter((answer, idx) => answer === task.questions[idx].correctAnswer).length;
+                                    return (
+                                        <p key={task.id} className="text-lg text-gray-700">
+                                            Task {task.id}: {taskMarks} / 5 marks
+                                        </p>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                onClick={resetQuiz}
+                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full text-xl transition-colors"
+                            >
+                                Restart Quiz
+                            </button>
+                            <div className="mt-6 text-center">
+                                <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold">
+                                    <Home size={24} /> Back to Home
                                 </Link>
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>
