@@ -121,43 +121,43 @@ const Index = () => {
       name: "Nimasha Thilakarathne",
       role: "Parent",
       rating: 5,
-      comment: "TinkerAlpha has made learning electronics so fun for my daughter! She's excited about every lesson.",
+      comment: "Stay connected with your child’s learning path, track progress, and support them as they discover the world of science and innovation.",
       avatarUrl: "/uploads/Parent.jpg"
     },
     {
       name: "Sandun Dissanayake",
       role: "Teacher",
       rating: 5,
-      comment: "The gamification and interactive activities keep students engaged throughout the entire lesson.",
+      comment:"Gain full control over platform content, user management, and analytics to ensure a smooth and effective learning experience for all users.",
       avatarUrl: "/uploads/Teacher.jpg"
     },
     {
       name: "Fathima Afla",
       role: "Parent",
       rating: 5,
-      comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
+      comment: "Celebrate achievements and be part of every step as your child discovers science, technology, and innovation.",
       avatarUrl: "/uploads/Parent-1.jpg"
     },
     {
       name: "Kasuni Perera",
-      role: "student",
+      role: "student", 
       rating: 5,
-      comment: "TinkerAlpha has made learning electronics so fun for my daughter! She's excited about every lesson.",
+      comment: "Explore interactive lessons and hands-on activities designed to spark creativity and boost your STEAM learning journey.",
       avatarUrl: "/uploads/student.jpg"
     },
     {
       name: "Kamal Bandara",
       role: "Teacher",
       rating: 5,
-      comment: "The gamification and interactive activities keep students engaged throughout the entire lesson.",
+      comment:"Easily manage student progress, assign personalized activities, and monitor learning outcomes with powerful teaching tools.",
       avatarUrl: "/uploads/Teacher-2.jpg"
     },
     {
       name: "Nimali Alwis",
       role: "Parent",
       rating: 5,
-      comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
-      avatarUrl: "/uploads/parent-2.jpg"
+      comment: "Support your child’s learning journey with real-time updates, fun family activities, and progress dashboards.",
+      avatarUrl: "/uploads/parent- 2.jpg"
     }
   ];
 
