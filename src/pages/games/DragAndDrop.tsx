@@ -34,9 +34,10 @@ interface UserData {
 }
 
 const DragAndDrop: React.FC = () => {
+    const [questions, setQuestions] = useState<Question[]>([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
-    const [answers, setAnswers] = useState<string[]>(Array(5).fill(''));
-    const [marks, setMarks] = useState<number[]>(Array(5).fill(0));
+    const [answers, setAnswers] = useState<string[]>([]);
+    const [marks, setMarks] = useState<number[]>([]);
     const [totalMarks, setTotalMarks] = useState<number>(0);
     const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const [userId, setUserId] = useState<string>('');
@@ -50,40 +51,21 @@ const DragAndDrop: React.FC = () => {
     const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(false);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
-  const questions: Question[] = [
-        {
-            id: 1,
-            text: "A complete path for current to flow is called a:",
-            correctAnswer: "Circuit",
-            options: ["Break", "Wire", "Circuit", "Loop"]
-        },
-        {
-            id: 2,
-            text: "What device is used to protect a circuit from too much current?",
-            correctAnswer: "Fuse",
-            options: ["Switch", "Bulb", "Fuse", "Battery"]
-        },
-        {
-            id: 3,
-            text: "What does a resistor do in a circuit?",
-            correctAnswer: "Resists the flow of current",
-            options: ["Stores energy", "Allows free flow of current", "Resists the flow of current", "Changes voltage to current"]
-        },
-        {
-            id: 4,
-            text: "Which symbol is used for a battery in a circuit diagram?",
-            correctAnswer: "A short and a long line",
-            options: ["Circle with a cross", "A short and a long line", "Stores energy", "Allows free flow of current"]
-        },
-        {
-            id: 5,
-            text: "What kind of circuit has only one path for current to flow?",
-            correctAnswer: "Series circuit",
-            options: ["Parallel circuit", "Mixed circuit", "Series circuit", "Open circuit"]
-        },
-    ];
-
     useEffect(() => {
+        const fetchQuiz = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/draganddrop/questions');
+                setQuestions(response.data.questions);
+                setAnswers(Array(response.data.questions.length).fill(''));
+                setMarks(Array(response.data.questions.length).fill(0));
+            } catch (error) {
+                console.error('Error fetching quiz:', error);
+                setSaveStatus('Failed to load quiz questions');
+            }
+        };
+
+        fetchQuiz();
+
         const userData: UserData = JSON.parse(localStorage.getItem('currentUser') || '{}');
         setUser(userData.id || '');
         setUserId(userData.userId || '');
@@ -127,7 +109,6 @@ const DragAndDrop: React.FC = () => {
         const answer = event.dataTransfer.getData('text/plain');
         console.log('Dropped:', answer);
 
-        // Validate that the dropped item is a valid option
         if (!questions[index].options.includes(answer)) {
             setDragError('Invalid drop item. Please try again.');
             setDraggedItem(null);
@@ -171,7 +152,7 @@ const DragAndDrop: React.FC = () => {
 
         try {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
-                quizName:"DRAGANDDROP",
+                quizName: "DRAGANDDROP",
                 user,
                 userId,
                 username,
@@ -189,8 +170,8 @@ const DragAndDrop: React.FC = () => {
 
     const resetQuiz = (): void => {
         setCurrentQuestionIndex(0);
-        setAnswers(Array(5).fill(''));
-        setMarks(Array(5).fill(0));
+        setAnswers(Array(questions.length).fill(''));
+        setMarks(Array(questions.length).fill(0));
         setTotalMarks(0);
         setIsSubmitted(false);
         setSaveStatus(null);
@@ -200,7 +181,7 @@ const DragAndDrop: React.FC = () => {
 
     const getEncouragementMessage = (): string => {
         const percentage = (totalMarks / questions.length) * 100;
-        if (percentage === 100) return "🌟 Perfect! You're a Sri Lanka expert! 🌟";
+        if (percentage === 100) return "🌟 Perfect! You're a drag-and-drop expert! 🌟";
         if (percentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
         if (percentage >= 60) return "👍 Good job! Keep learning! 👍";
         if (percentage >= 40) return "😊 Nice try! Practice makes perfect! 😊";
@@ -220,9 +201,7 @@ const DragAndDrop: React.FC = () => {
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
-            {/* Navigation Bar */}
-            <Header></Header>
-            {/* Navigation Bar */}
+            <Header />
 
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
@@ -237,9 +216,9 @@ const DragAndDrop: React.FC = () => {
                 )}
                 <div className="text-center mb-16">
                     <div className="relative">
-                        <div className="text-6xl mb-4 animate-bounce"></div>
+                        <div className="text-6xl mb-4 animate-bounce">🖐️</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 Test 3 - Drag & Drop 
+                            🪄 Test 3 - Drag & Drop
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
@@ -255,7 +234,7 @@ const DragAndDrop: React.FC = () => {
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex-1 flex flex-col items-center">
-                    {!isSubmitted ? (
+                    {questions.length > 0 && !isSubmitted ? (
                         <div className="space-y-8 w-full">
                             <div className="text-center mb-4">
                                 <span className="bg-blue-500 text-white px-4 py-2 rounded-full text-lg font-bold">
@@ -269,12 +248,12 @@ const DragAndDrop: React.FC = () => {
                                 </p>
                                 <div
                                     className={`w-full h-20 border-4 border-dashed rounded-xl flex items-center justify-center text-xl font-semibold transition-all duration-300 ${
-                                        answers[currentQuestionIndex]
-                                            ? 'bg-green-100 border-green-400 text-green-800'
-                                            : dragOver
-                                                ? 'bg-blue-100 border-blue-500 text-blue-800'
-                                                : 'bg-gray-50 border-gray-400 text-gray-500'
-                                    } ${isSubmitted ? 'pointer-events-none opacity-50' : ''}`}
+    answers[currentQuestionIndex]
+        ? 'bg-green-100 border-green-400 text-green-800'
+        : dragOver
+            ? 'bg-blue-100 border-blue-500 text-blue-800'
+            : 'bg-gray-50 border-gray-400 text-gray-500'
+} ${isSubmitted ? 'pointer-events-none opacity-50' : ''}`}
                                     onDrop={(e) => handleDrop(currentQuestionIndex, e)}
                                     onDragOver={handleDragOver}
                                     onDragEnter={handleDragEnter}
@@ -293,19 +272,18 @@ const DragAndDrop: React.FC = () => {
                                         onDragStart={(e) => handleDragStart(e, option)}
                                         onDragEnd={handleDragEnd}
                                         onTouchStart={(e) => {
-                                            // Basic touch support
                                             e.preventDefault();
                                             handleDragStart(e as any, option);
                                         }}
                                         className={`bg-gradient-to-r from-pink-200 to-purple-200 rounded-2xl p-4 border-2 border-purple-300 text-center font-semibold select-none transition-all duration-300 ${
-                                            draggedItem === option ? 'opacity-50 scale-95' : ''
-                                        } ${
-                                            answers[currentQuestionIndex] === option
-                                                ? 'opacity-50 cursor-not-allowed'
-                                                : isSubmitted
-                                                    ? 'cursor-not-allowed'
-                                                    : 'cursor-move hover:scale-105'
-                                        }`}
+    draggedItem === option ? 'opacity-50 scale-95' : ''
+} ${
+    answers[currentQuestionIndex] === option
+        ? 'opacity-50 cursor-not-allowed'
+        : isSubmitted
+            ? 'cursor-not-allowed'
+            : 'cursor-move hover:scale-105'
+}`}
                                     >
                                         {option}
                                     </div>

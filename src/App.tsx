@@ -27,6 +27,9 @@ import DragAndDrop from "@/pages/games/DragAndDrop.tsx";
 import Auditory from "@/pages/games/Auditory.tsx";
 import GameContext from "@/pages/games/GameContext.tsx";
 import Students from "@/pages/Students.tsx";
+import SaveVisualQuiz from "@/pages/games/SaveVisualQuiz.tsx";
+import SaveAuditoryQuiz from "@/pages/games/SaveAuditoryQuiz.tsx";
+import SaveDragAndDropQuiz from "@/pages/games/SaveDragAndDrop.tsx";
 
 
 const queryClient = new QueryClient();
@@ -155,6 +158,22 @@ const App = () => (
             <Route path="/students" element={
               <ProtectedRoute>
                 <Students />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/save-visual-quiz" element={
+              <ProtectedRoute>
+                <SaveVisualQuiz />
+              </ProtectedRoute>
+            } />
+            <Route path="/save-auditory-quiz" element={
+              <ProtectedRoute>
+                <SaveAuditoryQuiz />
+              </ProtectedRoute>
+            } />
+            <Route path="/save-drag-and-drop-quiz" element={
+              <ProtectedRoute>
+                <SaveDragAndDropQuiz />
               </ProtectedRoute>
             } />
             <Route path="/add-activity" element={

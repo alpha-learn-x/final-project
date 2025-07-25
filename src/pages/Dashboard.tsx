@@ -49,26 +49,6 @@ const Dashboard = () => {
         setIsSoundEnabled(!isSoundEnabled);
     };
 
-    const studentProgress = [
-        { activity: "Simple Electric Circuit", progress: 100, completed: true },
-        { activity: "Building a Simple Motor", progress: 75, completed: false },
-        { activity: "Traffic Light Automation", progress: 30, completed: false },
-        { activity: "Building a Simple Robot", progress: 0, completed: false }
-    ];
-
-    const chartData = [
-        { activity: "Activity 1", performance: 850, hours: 12 },
-        { activity: "Activity 2", performance: 750, hours: 8 },
-        { activity: "Activity 3", performance: 300, hours: 4 },
-        { activity: "Activity 4", performance: 0, hours: 0 },
-    ];
-
-    const performanceData = [
-        { name: "Completed", value: 25, color: "#22c55e" },
-        { name: "In Progress", value: 50, color: "#3b82f6" },
-        { name: "Not Started", value: 25, color: "#e5e7eb" }
-    ];
-
     // New data based on the Teacher Dashboard image
     const teacherMetrics = {
         totalStudents: 128,
@@ -77,25 +57,17 @@ const Dashboard = () => {
         needAttention: 7
     };
 
-    const learningModalities = [
-        { name: "Visual", value: 75 },
-        { name: "Auditory", value: 65 },
-        { name: "Kinesthetic", value: 70 },
-        { name: "Reading", value: 60 }
-    ];
-
-    const weakestAreas = [
-        { name: "Math Concepts", value: 30 },
-        { name: "Reading Comprehension", value: 25 },
-        { name: "Science Experiments", value: 20 },
-        { name: "Creative Writing", value: 25 }
-    ];
-
     const sidebarItems = [
         { name: "Overview", icon: Home, active: true },
         { name: "Reports", icon: FileText, path: "/reports" },
         { name: "Students", icon: FileText, path: "/students" },
-        ...(isTeacher ? [{ name: "Add New Activity", icon: MessageSquare, path: "/add-activity" }] : [])
+        ...(isTeacher ? [
+            { name: "Add New Activity", icon: MessageSquare, path: "/add-activity" },
+            { name: "Save Visual Quiz", icon: MessageSquare, path: "/save-visual-quiz" },
+            { name: "Save Auditory Quiz", icon: MessageSquare, path: "/save-auditory-quiz" },
+            { name: "Save Drag & Drop Quiz", icon: MessageSquare, path: "/save-drag-and-drop-quiz" },
+
+        ] : [])
     ];
 
     const handleLogout = () => {
@@ -265,50 +237,6 @@ const Dashboard = () => {
                                 <p className="text-yellow-800">Need Attention</p>
                                 <h3 className="text-2xl font-bold text-yellow-900">{teacherMetrics.needAttention}</h3>
                                 <p className="text-sm text-yellow-600">Students struggling +2% from last week</p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Charts Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Card className="bg-white border-gray-200">
-                            <CardHeader>
-                                <CardTitle className="text-blue-800">Learning Modalities Distribution</CardTitle>
-                                <p className="text-gray-600">Student performance across different learning styles</p>
-                            </CardHeader>
-                            <CardContent>
-                                {/* Bar Chart for Learning Modalities */}
-                                {/*<chartjs type="bar" data={{*/}
-                                {/*    labels: learningModalities.map(item => item.name),*/}
-                                {/*    datasets: [{*/}
-                                {/*        label: 'Performance',*/}
-                                {/*        data: learningModalities.map(item => item.value),*/}
-                                {/*        backgroundColor: '#8B5CF6',*/}
-                                {/*        borderColor: '#7C3AED',*/}
-                                {/*        borderWidth: 1*/}
-                                {/*    }]*/}
-                                {/*}} options={{*/}
-                                {/*    scales: {y: {beginAtZero: true, max: 100}},*/}
-                                {/*    plugins: { legend: { display: false } }*/}
-                                {/*}} />*/}
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-white border-gray-200">
-                            <CardHeader>
-                                <CardTitle className="text-blue-800">Weakest Learning Areas</CardTitle>
-                                <p className="text-gray-600">Areas where students need more support</p>
-                            </CardHeader>
-                            <CardContent>
-                                {/* Pie Chart for Weakest Learning Areas */}
-                                {/*<chartjs type="pie" data={{*/}
-                                {/*    labels: weakestAreas.map(item => item.name),*/}
-                                {/*    datasets: [{*/}
-                                {/*        data: weakestAreas.map(item => item.value),*/}
-                                {/*        backgroundColor: ['#60A5FA', '#F472B6', '#34D399', '#FBBF24'],*/}
-                                {/*        borderColor: ['#3B82F6', '#EC4899', '#10B981', '#F59E0B'],*/}
-                                {/*        borderWidth: 1*/}
-                                {/*    }]*/}
-                                {/*}} options={{ plugins: { legend: { position: 'bottom' } } }} />*/}
                             </CardContent>
                         </Card>
                     </div>
