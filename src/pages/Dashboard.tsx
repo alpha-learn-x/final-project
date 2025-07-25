@@ -138,7 +138,7 @@ const Dashboard = () => {
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 flex flex-col">
             <div className="flex flex-1">
                 {/* Sidebar */}
-                <div className="w-80 bg-gradient-to-b from-yellow-200 via-yellow-300 to-yellow-400 p-6 flex flex-col">
+                <div className="w-80 bg-gradient-to-b from-blue-100 via-blue-300 to-blue-600 p-6 flex flex-col">
                     <div className="text-center mb-8">
                         <div
                             className="w-24 h-24 bg-pink-300 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-white">
@@ -156,7 +156,7 @@ const Dashboard = () => {
                                 className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                                     item.active
                                         ? 'bg-white text-gray-800 shadow-md'
-                                        : 'text-gray-700 hover:bg-yellow-300'
+                                        : 'text-gray-700 hover:bg-white'
                                 }`}
                             >
                                 <item.icon className="h-5 w-5"/>
@@ -164,21 +164,7 @@ const Dashboard = () => {
                             </Link>
                         ))}
                     </nav>
-                    <div className="mt-10">
-                        <div
-                            className="w-20 h-20 bg-blue-300 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-white">
-                            <img src="/Uploads/00d4cb2f-56bd-4d1f-955b-70e4a28236e0.png" alt="Student"
-                                 className="w-20 h-20 rounded-full object-cover border-white"/>
-                            <User className="w-12 h-12 text-blue-600"/>
-                        </div>
-                        <Button
-                            onClick={handleLogout}
-                            className="w-full bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
-                        >
-                            <LogOut className="w-4 h-4 mr-2"/>
-                            Logout
-                        </Button>
-                    </div>
+                    
                 </div>
 
                 {/* Main Content */}

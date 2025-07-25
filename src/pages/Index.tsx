@@ -101,13 +101,6 @@ const Index = () => {
       color: "from-blue-100 to-blue-200 border-blue-300"
     },
     {
-      type: "parent",
-      icon: Users,
-      title: "Parent",
-      description: "Monitor your child's learning journey",
-      color: "from-green-100 to-green-200 border-green-300"
-    },
-    {
       type: "teacher",
       icon: User,
       title: "Teacher",
@@ -149,6 +142,9 @@ const Index = () => {
       <Header />
 
       <div className="container mx-auto px-4 py-16">
+
+
+
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-blue-800 mb-6 animate-bounce">
@@ -168,7 +164,7 @@ const Index = () => {
         {/* User Type Section */}
         <div className="mb-16">
           <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> 🙋🏻♀️Choose Your Role & Sign In</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             {userTypes.map((userType) => {
               const IconComponent = userType.icon;
               return (
@@ -197,23 +193,23 @@ const Index = () => {
 
         {/* Certificate Section */}
         <div className="mb-16">
-          <Card className="bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300">
+          <Card className="bg-gradient-to-r from-purple-00 to-pink-00 border-2 border-purple-300">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl text-orange-800 mb-4">
+              <CardTitle className="text-3xl text-purple-800 mb-4">
                 🎓 Welcome Certificate for New Students!
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-orange-700 text-lg mb-6">
+              <p className="text-purple-700 text-lg mb-6">
                 Get your personalized welcome certificate when you register for TinkerAlpha Learning Academy!
               </p>
               <div className="flex justify-center space-x-4">
-                <Button onClick={handleDownloadSampleCertificate} className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3">
+                <Button onClick={handleDownloadSampleCertificate} className="bg-purple-500 hover:bg-pink-500 text-white px-8 py-3">
                   <Download className="mr-2 h-5 w-5" />
                   Download Sample Certificate
                 </Button>
                 <Link to="/register">
-                  <Button variant="outline" className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 px-8 py-3">
+                  <Button variant="outline" className="border-2 border-purple-500 text-purple-500  px-8 py-3">
                     Register to Get Yours!
                   </Button>
                 </Link>
@@ -221,6 +217,35 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Enhanced Fun Stats Section */}
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 mb-12 border-4 border-purple-200">
+            <h3 className="text-4xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8">
+              🎊 Amazing Rewards Await You,🎊
+            </h3>
+            <div className="grid md:grid-cols-4 gap-6 text-center">
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-bounce">🎖️</div>
+                <div className="text-2xl font-bold text-purple-600">Cool Badges</div>
+                <div className="text-gray-600">Collect them all!</div>
+              </div>
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-pulse">📑</div>
+                <div className="text-2xl font-bold text-blue-600">Certificates</div>
+                <div className="text-gray-600">Play & Learn!</div>
+              </div>
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-spin">🧸</div>
+                <div className="text-2xl font-bold text-yellow-600">Cartoon Character</div>
+                <div className="text-gray-600">Level up!</div>
+              </div>
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-bounce">🎁</div>
+                <div className="text-2xl font-bold text-green-600">Surprises</div>
+                <div className="text-gray-600">Hidden treasures!</div>
+              </div>
+            </div>
+          </div>
 
         {/* Testimonials Carousel */}
         <div className="mb-16">
