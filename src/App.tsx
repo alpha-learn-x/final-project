@@ -27,6 +27,10 @@ import DragAndDrop from "@/pages/games/DragAndDrop.tsx";
 import Auditory from "@/pages/games/Auditory.tsx";
 import GameContext from "@/pages/games/GameContext.tsx";
 import Students from "@/pages/Students.tsx";
+import SaveVisualQuiz from "@/pages/games/SaveVisualQuiz.tsx";
+import SaveAuditoryQuiz from "@/pages/games/SaveAuditoryQuiz.tsx";
+import SaveDragAndDropQuiz from "@/pages/games/SaveDragAndDrop.tsx";
+import Kinesthetic from "@/pages/games/Kinesthetic.tsx";
 
 
 const queryClient = new QueryClient();
@@ -157,6 +161,22 @@ const App = () => (
                 <Students />
               </ProtectedRoute>
             } />
+
+            <Route path="/save-visual-quiz" element={
+              <ProtectedRoute>
+                <SaveVisualQuiz />
+              </ProtectedRoute>
+            } />
+            <Route path="/save-auditory-quiz" element={
+              <ProtectedRoute>
+                <SaveAuditoryQuiz />
+              </ProtectedRoute>
+            } />
+            <Route path="/save-drag-and-drop-quiz" element={
+              <ProtectedRoute>
+                <SaveDragAndDropQuiz />
+              </ProtectedRoute>
+            } />
             <Route path="/add-activity" element={
               <ProtectedRoute requireTeacher={true}>
                 <AddActivity />
@@ -166,6 +186,12 @@ const App = () => (
             <Route path="/modularity" element={
               <ProtectedRoute>
                 <Modularities />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/kinesthetic" element={
+              <ProtectedRoute>
+                <Kinesthetic />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
