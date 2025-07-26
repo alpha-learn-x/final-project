@@ -118,7 +118,7 @@ const Index = () => {
 
   const testimonials = [
     {
-      name: "Gayathri Kumari",
+      name: "Nimali Kumari",
       role: "Parent",
       rating: 5,
       comment: "Stay connected with your child’s learning path, track progress, and support them as they discover the world of science and innovation.",
