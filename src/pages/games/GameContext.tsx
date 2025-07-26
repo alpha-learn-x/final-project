@@ -25,7 +25,7 @@ const GameContext = () => {
             <div className="container mx-auto px-4 py-12">
                 <div className="text-center mb-16">
                     <div className="relative">
-                        <div className="text-6xl mb-4 animate-bounce"></div>
+                        <div className="text-6xl mb-4 animate-bounce">🧠</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
                             🪄 Welcome to TinkerAlpha!
                         </h1>
@@ -56,10 +56,10 @@ const GameContext = () => {
                                 <span className="text-2xl font-bold text-purple-800">Visual</span>
                             </div>
                         </Link>
-                        <Link to="/kinesthetic" className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-6 border-2 border-dashed border-blue-300 hover:bg-blue-200 transition-all duration-300">
+                        <Link to="/drag-and-drop" className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-6 border-2 border-dashed border-blue-300 hover:bg-blue-200 transition-all duration-300">
                             <div className="flex items-center justify-center">
                                 <Target className="h-12 w-12 text-purple-800 mr-4" />
-                                <span className="text-2xl font-bold text-purple-800">Kinesthetic</span>
+                                <span className="text-2xl font-bold text-purple-800">Kinesthetics</span>
                             </div>
                         </Link>
                         <Link to="/auditory" className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-6 border-2 border-dashed border-blue-300 hover:bg-blue-200 transition-all duration-300">

@@ -45,9 +45,10 @@ const Header = () => {
         { to: "/subjects", label: "Subjects", icon: BookOpen },
         { to: "/activities", label: "Activities", icon: Target },
         { to: "/dashboard", label: "Dashboard", icon: BookOpen },
-        { to: "/certificates", label: "Certificates", icon: Award },
-        { to: "/help", label: "Help", icon: HelpCircle },
+        // { to: "/certificates", label: "Certificates", icon: Award },
         { to: "/game-context", label: "Modality", icon: Target },
+        { to: "/help", label: "Help", icon: HelpCircle },
+        
     ];
 
     return (
@@ -86,21 +87,7 @@ const Header = () => {
                     <div className="flex items-center space-x-2 md:space-x-3">
                         {/* Register Button - Hidden on small screens */}
 
-                        {/* Language Selector - Hidden on small screens */}
-                        <div className="hidden md:flex items-center space-x-2">
-                            <Globe className="h-4 w-4 text-blue-600" />
-                            <Select value={language} onValueChange={handleLanguageChange}>
-                                <SelectTrigger className="w-24 text-sm">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="english">English</SelectItem>
-                                    <SelectItem value="sinhala">Sinhala</SelectItem>
-                                    <SelectItem value="tamil">Tamil</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
+                      
                         {/* Sound Toggle - Hidden on small screens */}
                         <Button
                             onClick={toggleSound}
@@ -113,20 +100,17 @@ const Header = () => {
 
                         <Button
                             asChild
-                            className="hidden md:flex bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2"
+                            className="hidden md:flex bg-blue-500 hover:text-blue-10 text-white text-sm px-4 py-2"
                         >
                             <Link to="/register">Register Now</Link>
                         </Button>
 
-                        {/* Cart Button */}
+                        {/* Collection Button */}
                         <Button
                             asChild
                             className="bg-green-500 hover:bg-green-600 text-white  p-2 md:px-4 md:py-2"
                         >
-                            <Link to="/cart" className="flex items-center">
-                                <ShoppingCart className="w-4 h-4" />
-                                <span className="hidden md:inline md:ml-2 text-sm">Cart</span>
-                            </Link>
+                            <Link to="/register">Collection</Link>
                         </Button>
 
                         {/* Logout Button - Hidden on small screens */}

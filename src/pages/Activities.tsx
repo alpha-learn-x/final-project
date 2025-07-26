@@ -126,19 +126,19 @@ const Activities = () => {
           {/* Header with Robot Guide */}
           <div className="text-center mb-16">
             <div className="relative">
-              <div className="text-6xl mb-4 animate-bounce">🤖</div>
-              <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                🪄 Learning Adventures with {userName}!
+              
+              <h1 className="text-4xl font-bold text-white mb-6 animate-pulse">
+                Hello 👋 {userName} Let's Explore Fun Activities!
               </h1>
               <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
               <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
             </div>
             <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
               <p className="text-2xl text-purple-800 font-bold mb-4">
-                Hi {userName}! 👋 I'm your learning buddy! Let's explore amazing activities together!
+                We have selected a bunch of amazing activities for you
               </p>
               <p className="text-lg text-blue-700">
-                🌟 Choose an adventure below and let's learn through play! Each activity has stories, games, and awesome rewards! 🌟
+                Try them in your own virtual environment
               </p>
             </div>
           </div>
@@ -200,41 +200,12 @@ const Activities = () => {
             })}
           </div>
 
-          {/* Enhanced Fun Stats Section */}
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 mb-12 border-4 border-purple-200">
-            <h3 className="text-4xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8">
-              🎊 Amazing Rewards Await You, {userName}! 🎊
-            </h3>
-            <div className="grid md:grid-cols-4 gap-6 text-center">
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-bounce">🏆</div>
-                <div className="text-2xl font-bold text-purple-600">Cool Badges</div>
-                <div className="text-gray-600">Collect them all!</div>
-              </div>
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-pulse">🎮</div>
-                <div className="text-2xl font-bold text-blue-600">Fun Games</div>
-                <div className="text-gray-600">Play & Learn!</div>
-              </div>
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-spin">🌟</div>
-                <div className="text-2xl font-bold text-yellow-600">Magic Stars</div>
-                <div className="text-gray-600">Level up!</div>
-              </div>
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-bounce">🎁</div>
-                <div className="text-2xl font-bold text-green-600">Surprises</div>
-                <div className="text-gray-600">Hidden treasures!</div>
-              </div>
-            </div>
-          </div>
-
           {/* Back to Home */}
           <div className="text-center">
             <Link to="/">
               <Button className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
                 <Home className="mr-3 h-5 w-5" />
-                🏠 Home
+                 Home
               </Button>
             </Link>
           </div>

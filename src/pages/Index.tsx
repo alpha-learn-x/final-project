@@ -101,13 +101,6 @@ const Index = () => {
       color: "from-blue-100 to-blue-200 border-blue-300"
     },
     {
-      type: "parent",
-      icon: Users,
-      title: "Parent",
-      description: "Monitor your child's learning journey",
-      color: "from-green-100 to-green-200 border-green-300"
-    },
-    {
       type: "teacher",
       icon: User,
       title: "Teacher",
@@ -137,27 +130,6 @@ const Index = () => {
       rating: 5,
       comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
       avatar: "👩💼"
-    },
-    {
-      name: "Kasuni Perera",
-      role: "student",
-      rating: 5,
-      comment: "TinkerAlpha has made learning electronics so fun for my daughter! She's excited about every lesson.",
-      avatar: "👩🦳"
-    },
-    {
-      name: "Kamal Bandara",
-      role: "Teacher",
-      rating: 5,
-      comment: "The gamification and interactive activities keep students engaged throughout the entire lesson.",
-      avatar: "👨🏫"
-    },
-    {
-      name: "Nimali Alwis",
-      role: "Parent",
-      rating: 5,
-      comment: "The progress tracking helps me understand exactly how my son is developing his STEM skills.",
-      avatar: "👩💼"
     }
   ];
 
@@ -170,10 +142,13 @@ const Index = () => {
       <Header />
 
       <div className="container mx-auto px-4 py-16">
+
+
+
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-blue-800 mb-6 animate-bounce">
-             Welcome to TinkerAlpha! 
+            ⚡ Welcome to TinkerAlpha! ⚡
           </h1>
           <p className="text-2xl text-gray-700 mb-8 max-w-4xl mx-auto">
             💡 The most fun way for kids to learn electronics! Join thousands of young innovators! 🔋
@@ -181,15 +156,15 @@ const Index = () => {
           <Link to="/activities">
             <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-12 py-6 text-2xl rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
               <Play className="mr-4 h-6 w-6" />
-              START LEARNING NOW
+              START LEARNING NOW!
             </Button>
           </Link>
         </div>
 
         {/* User Type Section */}
         <div className="mb-16">
-          <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> Choose Your Role & Sign In</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> 🙋🏻♀️Choose Your Role & Sign In</h2>
+          <div className="grid md:grid-cols-2 gap-8">
             {userTypes.map((userType) => {
               const IconComponent = userType.icon;
               return (
@@ -218,23 +193,23 @@ const Index = () => {
 
         {/* Certificate Section */}
         <div className="mb-16">
-          <Card className="bg-gradient-to-r from-yellow-100 to-orange-100 border-2 border-yellow-300">
+          <Card className="bg-gradient-to-r from-purple-00 to-pink-00 border-2 border-purple-300">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl text-orange-800 mb-4">
+              <CardTitle className="text-3xl text-purple-800 mb-4">
                 🎓 Welcome Certificate for New Students!
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-orange-700 text-lg mb-6">
+              <p className="text-purple-700 text-lg mb-6">
                 Get your personalized welcome certificate when you register for TinkerAlpha Learning Academy!
               </p>
               <div className="flex justify-center space-x-4">
-                <Button onClick={handleDownloadSampleCertificate} className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3">
+                <Button onClick={handleDownloadSampleCertificate} className="bg-purple-500 hover:bg-pink-500 text-white px-8 py-3">
                   <Download className="mr-2 h-5 w-5" />
                   Download Sample Certificate
                 </Button>
                 <Link to="/register">
-                  <Button variant="outline" className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 px-8 py-3">
+                  <Button variant="outline" className="border-2 border-purple-500 text-purple-500  px-8 py-3">
                     Register to Get Yours!
                   </Button>
                 </Link>
@@ -242,6 +217,35 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Enhanced Fun Stats Section */}
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 mb-12 border-4 border-purple-200">
+            <h3 className="text-4xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8">
+              🎊 Amazing Rewards Await You,🎊
+            </h3>
+            <div className="grid md:grid-cols-4 gap-6 text-center">
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-bounce">🎖️</div>
+                <div className="text-2xl font-bold text-purple-600">Cool Badges</div>
+                <div className="text-gray-600">Collect them all!</div>
+              </div>
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-pulse">📑</div>
+                <div className="text-2xl font-bold text-blue-600">Certificates</div>
+                <div className="text-gray-600">Play & Learn!</div>
+              </div>
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-spin">🧸</div>
+                <div className="text-2xl font-bold text-yellow-600">Cartoon Character</div>
+                <div className="text-gray-600">Level up!</div>
+              </div>
+              <div className="group hover:scale-110 transition-transform">
+                <div className="text-5xl mb-3 animate-bounce">🎁</div>
+                <div className="text-2xl font-bold text-green-600">Surprises</div>
+                <div className="text-gray-600">Hidden treasures!</div>
+              </div>
+            </div>
+          </div>
 
         {/* Testimonials Carousel */}
         <div className="mb-16">
@@ -251,19 +255,8 @@ const Index = () => {
             pagination={{ clickable: true }}
             autoplay={{ delay: 5000 }}
             spaceBetween={30}
-            slidesPerView={3}     // Show 3 slides at a time on larger screens
-            breakpoints={{
-              0: {
-                slidesPerView: 1, // 1 slide on small screens (mobile)
-              },
-              640: {
-                slidesPerView: 2, // 2 slides on small tablets
-              },
-              1024: {
-                slidesPerView: 3, // 3 slides on desktop and larger
-              },
-            }}
-            className="max-w-7xl mx-auto"
+            slidesPerView={1}
+            className="max-w-3xl mx-auto"
           >
             {testimonials.map((testimonial, index) => (
               <SwiperSlide key={index}>
@@ -283,7 +276,6 @@ const Index = () => {
               </SwiperSlide>
             ))}
           </Swiper>
-
         </div>
       </div>
 
