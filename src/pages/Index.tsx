@@ -173,7 +173,7 @@ const Index = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-6xl font-bold text-blue-800 mb-6 animate-bounce">
-            ⚡ Welcome to TinkerAlpha! ⚡
+             Welcome to TinkerAlpha! 
           </h1>
           <p className="text-2xl text-gray-700 mb-8 max-w-4xl mx-auto">
             💡 The most fun way for kids to learn electronics! Join thousands of young innovators! 🔋
@@ -181,14 +181,14 @@ const Index = () => {
           <Link to="/activities">
             <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-12 py-6 text-2xl rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
               <Play className="mr-4 h-6 w-6" />
-              START LEARNING NOW!
+              START LEARNING NOW
             </Button>
           </Link>
         </div>
 
         {/* User Type Section */}
         <div className="mb-16">
-          <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> 🙋🏻♀️Choose Your Role & Sign In</h2>
+          <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> Choose Your Role & Sign In</h2>
           <div className="grid md:grid-cols-3 gap-8">
             {userTypes.map((userType) => {
               const IconComponent = userType.icon;
