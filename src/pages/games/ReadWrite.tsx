@@ -125,7 +125,7 @@ const ReadWrite: React.FC = () => {
 
     const saveQuizResults = async (totalMarks: number, finalTime: number) => {
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/readandwrite/results', {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
                 quizName: "READWRITE",
                 user,
                 userId,
