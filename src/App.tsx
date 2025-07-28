@@ -33,6 +33,7 @@ import SaveDragAndDropQuiz from "@/pages/games/SaveDragAndDrop.tsx";
 import Kinesthetic from "@/pages/games/Kinesthetic.tsx";
 import SaveReadWrite from "@/pages/games/SaveReadWriteQuiz.tsx";
 import SaveReadWriteQuiz from "@/pages/games/SaveReadWriteQuiz.tsx";
+import SaveKinestheticQuiz from "@/pages/games/SaveKinestheticQuiz.tsx";
 
 
 const queryClient = new QueryClient();
@@ -184,6 +185,13 @@ const App = () => (
                 <SaveReadWriteQuiz />
               </ProtectedRoute>
             } />
+
+            <Route path="/save-kinesthetic-quiz" element={
+              <ProtectedRoute>
+                <SaveKinestheticQuiz />
+              </ProtectedRoute>
+            } />
+
             <Route path="/add-activity" element={
               <ProtectedRoute requireTeacher={true}>
                 <AddActivity />
