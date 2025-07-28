@@ -112,24 +112,6 @@ const SaveReadWriteQuiz: React.FC = () => {
             setError('Quiz name is required');
             return false;
         }
-        for (const question of quiz.questions) {
-            if (!question.scenario.trim()) {
-                setError('All questions must have a scenario');
-                return false;
-            }
-            if (question.steps.some(step => !step.trim())) {
-                setError('All steps must be filled');
-                return false;
-            }
-            if (question.correctOrder.some(order => order < 0 || order > 4)) {
-                setError('All correct order values must be between 0 and 4');
-                return false;
-            }
-            if (new Set(question.correctOrder).size !== question.correctOrder.length) {
-                setError('Correct order values must be unique for each question');
-                return false;
-            }
-        }
         return true;
     };
 
