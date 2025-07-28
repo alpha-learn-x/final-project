@@ -2,164 +2,90 @@ import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import axios from 'axios';
+import Header from "@/components/Header.tsx";
 
-const Kinesthetic = () => {
-    const tasks = [
-        {
-            id: 1,
-            images: [
-                { id: "open", src: "https://via.placeholder.com/50?text=Open" },
-                { id: "closed", src: "https://via.placeholder.com/50?text=Closed" },
-                { id: "parallel", src: "https://via.placeholder.com/50?text=Parallel" },
-                { id: "series", src: "https://via.placeholder.com/50?text=Series" },
-                { id: "short", src: "https://via.placeholder.com/50?text=Short" }
-            ],
-            options: [
-                "Open Circuit",
-                "Closed Circuit",
-                "Parallel circuit",
-                "Series Circuit",
-                "Short Circuit"
-            ]
-        },
-        {
-            id: 2,
-            images: [
-                { id: "resistor", src: "https://via.placeholder.com/50?text=Resistor" },
-                { id: "bulb", src: "https://via.placeholder.com/50?text=Bulb" },
-                { id: "battery", src: "https://via.placeholder.com/50?text=Battery" },
-                { id: "switch", src: "https://via.placeholder.com/50?text=Switch" },
-                { id: "wire", src: "https://via.placeholder.com/50?text=Wire" }
-            ],
-            options: [
-                "Battery",
-                "Wire",
-                "Resistor",
-                "Bulb",
-                "Switch"
-            ]
-        },
-        {
-            id: 3,
-            images: [
-                { id: "fan", src: "https://via.placeholder.com/50?text=Fan" },
-                { id: "motor", src: "https://via.placeholder.com/50?text=Motor" },
-                { id: "buzzer", src: "https://via.placeholder.com/50?text=Buzzer" },
-                { id: "speaker", src: "https://via.placeholder.com/50?text=Speaker" },
-                { id: "led", src: "https://via.placeholder.com/50?text=LED" }
-            ],
-            options: [
-                "LED",
-                "Motor",
-                "Fan",
-                "Buzzer",
-                "Speaker"
-            ]
-        },
-        {
-            id: 4,
-            images: [
-                { id: "dc", src: "https://via.placeholder.com/50?text=DC" },
-                { id: "ac", src: "https://via.placeholder.com/50?text=AC" },
-                { id: "solar", src: "https://via.placeholder.com/50?text=Solar" },
-                { id: "wind", src: "https://via.placeholder.com/50?text=Wind" },
-                { id: "hydro", src: "https://via.placeholder.com/50?text=Hydro" }
-            ],
-            options: [
-                "AC Power",
-                "DC Power",
-                "Solar Energy",
-                "Wind Energy",
-                "Hydro Power"
-            ]
-        },
-        {
-            id: 5,
-            images: [
-                { id: "lamp", src: "https://via.placeholder.com/50?text=Lamp" },
-                { id: "heater", src: "https://via.placeholder.com/50?text=Heater" },
-                { id: "fridge", src: "https://via.placeholder.com/50?text=Fridge" },
-                { id: "tv", src: "https://via.placeholder.com/50?text=TV" },
-                { id: "charger", src: "https://via.placeholder.com/50?text=Charger" }
-            ],
-            options: [
-                "Fridge",
-                "TV",
-                "Lamp",
-                "Heater",
-                "Charger"
-            ]
-        }
-    ];
+interface Image {
+    id: string;
+    src: string;
+}
 
-    const correctAnswersMap = {
-        1: {
-            "Open Circuit": "open",
-            "Closed Circuit": "closed",
-            "Parallel circuit": "parallel",
-            "Series Circuit": "series",
-            "Short Circuit": "short"
-        },
-        2: {
-            "Battery": "battery",
-            "Wire": "wire",
-            "Resistor": "resistor",
-            "Bulb": "bulb",
-            "Switch": "switch"
-        },
-        3: {
-            "LED": "led",
-            "Motor": "motor",
-            "Fan": "fan",
-            "Buzzer": "buzzer",
-            "Speaker": "speaker"
-        },
-        4: {
-            "AC Power": "ac",
-            "DC Power": "dc",
-            "Solar Energy": "solar",
-            "Wind Energy": "wind",
-            "Hydro Power": "hydro"
-        },
-        5: {
-            "Fridge": "fridge",
-            "TV": "tv",
-            "Lamp": "lamp",
-            "Heater": "heater",
-            "Charger": "charger"
-        }
-    };
+interface Task {
+    id: number;
+    images: Image[];
+    options: string[];
+    correctAnswers: { [key: string]: string };
+}
 
+interface UserData {
+    id?: string;
+    userId?: string;
+    userName?: string;
+    email?: string;
+}
+
+const Kinesthetic: React.FC = () => {
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
     const [time, setTime] = useState(0);
-    const [draggedImage, setDraggedImage] = useState(null);
-    const [droppedItems, setDroppedItems] = useState({});
-    const [startTime, setStartTime] = useState(null);
-    const [results, setResults] = useState([]);
+    const [draggedImage, setDraggedImage] = useState<string | null>(null);
+    const [droppedItems, setDroppedItems] = useState<{ [key: string]: string }>({});
+    const [startTime, setStartTime] = useState<Date | null>(null);
+    const [results, setResults] = useState<{ taskId: number; timeTaken: number; marks: number }[]>([]);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [totalTime, setTotalTime] = useState(0);
     const [isQuizCompleted, setIsQuizCompleted] = useState(false);
-    const [saveStatus, setSaveStatus] = useState(null);
-
-    // User data states
+    const [showCurrentResult, setShowCurrentResult] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [userId, setUserId] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [user, setUser] = useState('');
 
-    const task = tasks[currentTaskIndex];
-
-    // Load user data on component mount
+    // Fetch tasks and user data on mount
     useEffect(() => {
+        const fetchTasks = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/kinesthetic/tasks');
+                console.log('Raw API response:', response.data);
+
+                let allTasks: Task[] = [];
+
+                if (Array.isArray(response.data)) {
+                    response.data.forEach((quiz: { tasks: Task[] }) => {
+                        if (quiz && quiz.tasks && Array.isArray(quiz.tasks)) {
+                            allTasks = [...allTasks, ...quiz.tasks];
+                        }
+                    });
+                } else if (response.data && typeof response.data === 'object' && response.data.tasks) {
+                    allTasks = response.data.tasks;
+                }
+
+                if (allTasks.length > 0 && allTasks.every(t => t.id && t.images?.length && t.options?.length && t.correctAnswers)) {
+                    setTasks(allTasks);
+                } else {
+                    throw new Error('Invalid task data structure');
+                }
+
+                setLoading(false);
+                console.log('Processed tasks:', allTasks);
+            } catch (err: any) {
+                console.error('Error fetching tasks:', err);
+                setError('Failed to load tasks. Please try again.');
+                setLoading(false);
+            }
+        };
+
+        fetchTasks();
+
         const userDataStr = localStorage.getItem('currentUser');
         if (!userDataStr) {
-            console.warn("No currentUser found in localStorage");
             setSaveStatus('Please log in to start the quiz.');
             return;
         }
         try {
-            const userData = JSON.parse(userDataStr);
-            console.log("Loaded user data:", userData);
+            const userData: UserData = JSON.parse(userDataStr);
             setUser(userData.id || '');
             setUserId(userData.userId || '');
             setUsername(userData.userName || '');
@@ -172,7 +98,7 @@ const Kinesthetic = () => {
 
     // Timer effect
     useEffect(() => {
-        let timer;
+        let timer: NodeJS.Timeout;
         if (isTimerRunning) {
             timer = setInterval(() => {
                 setTime(prev => prev + 1);
@@ -189,12 +115,12 @@ const Kinesthetic = () => {
         }
     };
 
-    const handleDragStart = (e, imageId) => {
+    const handleDragStart = (e: React.DragEvent, imageId: string) => {
         setDraggedImage(imageId);
         e.dataTransfer.setData("text/plain", imageId);
     };
 
-    const handleDrop = (e, option) => {
+    const handleDrop = (e: React.DragEvent, option: string) => {
         e.preventDefault();
         const imageId = draggedImage || e.dataTransfer.getData("text/plain");
         if (imageId && !droppedItems[option]) {
@@ -205,69 +131,78 @@ const Kinesthetic = () => {
         }
     };
 
-    const handleDragOver = (e) => e.preventDefault();
+    const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
     const calculateMarks = () => {
-        const correctAnswers = correctAnswersMap[task.id];
+        const task = tasks[currentTaskIndex];
+        const correctAnswers = task.correctAnswers;
         let correct = 0;
 
         task.options.forEach(option => {
             const userAnswer = droppedItems[option];
             const correctAnswer = correctAnswers[option];
-            const isCorrect = userAnswer === correctAnswer;
-
-            console.log(`${option}: User answered "${userAnswer || 'none'}", Correct answer is "${correctAnswer}" - ${isCorrect ? 'CORRECT (+1 mark)' : 'WRONG (0 marks)'}`);
-
-            if (isCorrect) {
+            if (userAnswer === correctAnswer) {
                 correct++;
             }
         });
 
-        console.log(`Task ${task.id} Marks: ${correct}/${task.options.length}`);
         return correct;
     };
 
-    const isComplete = Object.keys(droppedItems).length === task.options.length;
+    const isComplete = Object.keys(droppedItems).length === tasks[currentTaskIndex]?.options.length;
 
-    // When task is completed, add marks for that task to results
-    useEffect(() => {
-        if (isComplete && isTimerRunning) {
-            const marks = calculateMarks();
-            const taskResult = {
-                taskId: task.id,
-                timeTaken: time,
-                marks: marks
-            };
+    const handleCheckAnswer = () => {
+        if (!isComplete || !isTimerRunning) return;
+
+        const marks = calculateMarks();
+        const taskResult = {
+            taskId: tasks[currentTaskIndex].id,
+            timeTaken: time,
+            marks: marks
+        };
+
+        setResults(prev => {
+            if (prev.some(r => r.taskId === taskResult.taskId)) return prev;
+            return [...prev, taskResult];
+        });
+
+        setShowCurrentResult(true);
+    };
+
+    const handleNextActivity = () => {
+        if (!isComplete || !showCurrentResult) return;
+
+        if (currentTaskIndex < tasks.length - 1) {
+            setCurrentTaskIndex(prev => prev + 1);
+            setTime(0);
+            setDroppedItems({});
+            setShowCurrentResult(false);
+        } else {
+            setIsTimerRunning(false);
+            setIsQuizCompleted(true);
 
             setResults(prev => {
-                if (prev.some(r => r.taskId === task.id)) return prev;
-                const newResults = [...prev, taskResult];
-                console.log("Updated results:", newResults);
-                return newResults;
+                const finalResults = prev.some(r => r.taskId === tasks[currentTaskIndex].id)
+                    ? prev
+                    : [...prev, {
+                        taskId: tasks[currentTaskIndex].id,
+                        timeTaken: time,
+                        marks: calculateMarks()
+                    }];
+
+                saveQuizResults(finalResults, totalTime);
+                return finalResults;
             });
         }
-    }, [isComplete, isTimerRunning, time, task.id]);
+    };
 
-    const saveQuizResults = async (finalResults, finalTotalTime) => {
+    const saveQuizResults = async (finalResults: { taskId: number; timeTaken: number; marks: number }[], finalTotalTime: number) => {
         if (!user || !userId || !username || !email) {
             setSaveStatus('Error: Please log in to submit quiz results.');
-            console.warn("User data missing", { user, userId, username, email });
             return;
         }
 
         const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
-
-        console.log("Preparing to save quiz results:", {
-            quizName: "KINESTHETIC",
-            user,
-            userId,
-            username,
-            email,
-            totalMarks,
-            totalTime: finalTotalTime,
-            date: new Date().toISOString(),
-            taskResults: finalResults
-        });
 
         try {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
@@ -286,64 +221,11 @@ const Kinesthetic = () => {
                 }
             });
 
-            setSaveStatus('Quiz results saved successfully!');
+            setSaveStatus('✅ Quiz results saved successfully!');
             console.log('Quiz results saved:', response.data);
-        } catch (error) {
-            setSaveStatus('Error saving quiz results. Please try again.');
-            console.error('Error saving quiz results:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
-        }
-    };
-
-    const handleNextActivity = () => {
-        if (!isComplete) return;
-
-        setResults(prev => {
-            if (prev.some(r => r.taskId === task.id)) return prev;
-
-            const currentMarks = calculateMarks();
-            const currentTaskResult = {
-                taskId: task.id,
-                timeTaken: time,
-                marks: currentMarks
-            };
-
-            const updatedResults = [...prev, currentTaskResult];
-            return updatedResults;
-        });
-
-        if (currentTaskIndex < tasks.length - 1) {
-            setCurrentTaskIndex(prev => prev + 1);
-            setTime(0);
-            setDroppedItems({});
-        } else {
-            setIsTimerRunning(false);
-            setIsQuizCompleted(true);
-
-            setResults(prev => {
-                const finalResults = prev.some(r => r.taskId === task.id)
-                    ? prev
-                    : [...prev, {
-                        taskId: task.id,
-                        timeTaken: time,
-                        marks: calculateMarks()
-                    }];
-
-                const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
-                const maxPossibleMarks = tasks.length * 5;
-                finalResults.forEach(result => {
-                    console.log(`Task ${result.taskId}: ${result.marks}/5 marks (Time: ${result.timeTaken}s)`);
-                });
-
-                saveQuizResults(finalResults, totalTime);
-
-                alert(`All activities completed!\nTotal Score: ${totalMarks}/${maxPossibleMarks} marks\nTotal Time: ${Math.floor(totalTime / 60)}:${(totalTime % 60).toString().padStart(2, '0')}`);
-
-                return finalResults;
-            });
+        } catch (error: any) {
+            setSaveStatus('❌ Error saving quiz results. Please try again.');
+            console.error('Error saving quiz results:', error.response?.data || error.message);
         }
     };
 
@@ -356,14 +238,68 @@ const Kinesthetic = () => {
         setResults([]);
         setIsTimerRunning(false);
         setIsQuizCompleted(false);
+        setShowCurrentResult(false);
         setSaveStatus(null);
     };
 
-    const formatTime = (seconds) => {
+    const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
+
+    const getScoreColor = (score: number) => {
+        const totalPossibleMarks = tasks.length * 5;
+        const percentage = (score / totalPossibleMarks) * 100;
+        if (percentage >= 80) return "text-green-600";
+        if (percentage >= 60) return "text-yellow-600";
+        return "text-red-500";
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4 animate-bounce">📚</div>
+                    <p className="text-3xl text-white font-bold">Loading tasks...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <div className="text-center bg-white/90 rounded-3xl p-8 border-4 border-red-400">
+                    <div className="text-6xl mb-4">❌</div>
+                    <p className="text-2xl text-red-600 font-bold mb-4">{error}</p>
+                    <Link to="/">
+                        <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full">
+                            Back to Home
+                        </button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    if (!tasks || tasks.length === 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <div className="text-center bg-white/90 rounded-3xl p-8 border-4 border-yellow-400">
+                    <div className="text-6xl mb-4">📝</div>
+                    <p className="text-2xl text-purple-800 font-bold mb-4">No tasks available for this quiz.</p>
+                    <Link to="/">
+                        <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full">
+                            Back to Home
+                        </button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const task = tasks[currentTaskIndex];
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
@@ -371,9 +307,11 @@ const Kinesthetic = () => {
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
+            <Header />
+
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
-                    <div className={`mb-4 p-4 rounded-lg ${saveStatus.includes('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    <div className={`mb-4 p-4 rounded-lg ${saveStatus.includes('Error') || saveStatus.includes('❌') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                         {saveStatus}
                     </div>
                 )}
@@ -392,14 +330,33 @@ const Kinesthetic = () => {
                         <p className="text-lg text-blue-700">
                             🌟 Drag the images to their correct positions! 🌟
                         </p>
+                        <p className="text-md text-gray-600">
+                            Task {currentTaskIndex + 1} of {tasks.length}
+                            {isQuizCompleted && " - Quiz Completed!"}
+                        </p>
                     </div>
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
                     {!isQuizCompleted ? (
                         <>
+                            <div className="bg-white p-4 rounded-xl border-2 border-purple-300 mb-6">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-lg font-bold text-purple-800">Progress</span>
+                                    <span className="text-lg font-bold text-purple-800">
+                                        {currentTaskIndex + 1} / {tasks.length}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-4">
+                                    <div
+                                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full transition-all duration-300"
+                                        style={{ width: `${((currentTaskIndex + 1) / tasks.length) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
                             <h2 className="text-3xl font-semibold text-center mb-2 text-purple-800">
-                                Kinesthetic Test {task.id} of {tasks.length}
+                                Kinesthetic Test {task.id}
                             </h2>
                             <h3 className="text-xl font-medium text-center mb-6 text-blue-700">
                                 Drag and Drop to correct Position
@@ -420,7 +377,7 @@ const Kinesthetic = () => {
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
                                 <span className="text-2xl mr-6 font-bold text-blue-800">
-                                    ⏱️ Time: {formatTime(totalTime)}
+                                    ⏱️ Total Time: {formatTime(totalTime)}
                                 </span>
                                 <span className="text-lg mr-6 text-gray-600">
                                     Current Task: {formatTime(time)}
@@ -460,19 +417,74 @@ const Kinesthetic = () => {
                                 ))}
                             </div>
 
-                            <button
-                                onClick={handleNextActivity}
-                                disabled={!isComplete}
-                                className={`w-full py-4 text-xl font-bold rounded-full transition-colors
-                                    ${isComplete ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-400 cursor-not-allowed text-gray-200'}`}
-                            >
-                                {currentTaskIndex < tasks.length - 1 ? "Next Activity" : "Finish Test"}
-                            </button>
+                            {showCurrentResult && (
+                                <div className="mt-6 p-6 rounded-xl border-2 bg-green-100 border-green-400">
+                                    <p className="text-2xl font-bold text-green-800 mb-4">
+                                        Task {currentTaskIndex + 1} Result
+                                    </p>
+                                    <p className={`text-xl font-bold ${getScoreColor(results.find(r => r.taskId === task.id)?.marks || 0)}`}>
+                                        Score: {results.find(r => r.taskId === task.id)?.marks || 0} / 5
+                                    </p>
+                                    <p className="text-lg text-gray-700">
+                                        Time: {formatTime(results.find(r => r.taskId === task.id)?.timeTaken || 0)}
+                                    </p>
+                                    <div className="mt-4">
+                                        {task.options.map((option, index) => (
+                                            <div
+                                                key={index}
+                                                className={`p-2 rounded mb-2 ${
+                                                    droppedItems[option] === task.correctAnswers[option]
+                                                        ? 'bg-green-200'
+                                                        : 'bg-red-200'
+                                                }`}
+                                            >
+                                                <p>{index + 1}. {option}</p>
+                                                <p>
+                                                    <strong>Your Answer:</strong> {droppedItems[option] || 'No answer'}
+                                                </p>
+                                                <p>
+                                                    <strong>Correct Answer:</strong> {task.correctAnswers[option]}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex justify-center gap-4 mt-10">
+                                {showCurrentResult ? (
+                                    <button
+                                        onClick={handleNextActivity}
+                                        className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
+                                    >
+                                        {currentTaskIndex < tasks.length - 1 ? "Next Task ➡️" : "Finish Quiz 🎯"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleCheckAnswer}
+                                        disabled={!isComplete || !isTimerRunning}
+                                        className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
+                                    >
+                                        Check Answer ➡️
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="mt-6 text-center bg-yellow-100 p-4 rounded-xl border-2 border-yellow-300">
+                                <p className="text-lg text-yellow-800 font-semibold">
+                                    💡 Drag all images to their correct positions to check your answer
+                                </p>
+                                {currentTaskIndex === tasks.length - 1 && !showCurrentResult && (
+                                    <p className="text-lg text-green-800 font-bold mt-2">
+                                        🎯 This is the final task. Check your answer before finishing!
+                                    </p>
+                                )}
+                            </div>
                         </>
                     ) : (
                         <>
                             <h2 className="text-4xl font-bold text-center text-purple-900 mb-4">
-                                🎉 Congratulations! You completed all activities!
+                                🎉 Congratulations! You completed all tasks!
                             </h2>
                             <div className="text-center mb-6">
                                 <p className="text-xl font-semibold mb-2 text-green-800">
@@ -482,22 +494,63 @@ const Kinesthetic = () => {
                                     Total Marks: {results.reduce((acc, r) => acc + r.marks, 0)} / {tasks.length * 5}
                                 </p>
                             </div>
-                            <div className="space-y-2 mb-8 max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border-2 border-green-400">
+                            <div className="space-y-4 mb-8 max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border-2 border-green-400">
                                 {results.map(r => (
-                                    <p key={r.taskId} className="text-lg text-gray-700">
-                                        Task {r.taskId}: {r.marks} / 5 marks (Time: {formatTime(r.timeTaken)})
-                                    </p>
+                                    <div
+                                        key={r.taskId}
+                                        className={`p-4 rounded-xl border-2 ${
+                                            r.marks === 5 ? 'bg-green-100 border-green-400' :
+                                                r.marks >= 3 ? 'bg-yellow-100 border-yellow-400' :
+                                                    'bg-red-100 border-red-400'
+                                        }`}
+                                    >
+                                        <p className="font-semibold text-gray-800 text-lg mb-2">
+                                            Task {r.taskId}
+                                        </p>
+                                        <p className={`text-lg font-bold ${r.marks === 5 ? 'text-green-600' : r.marks >= 3 ? 'text-yellow-600' : 'text-red-500'}`}>
+                                            Score: {r.marks} / 5
+                                        </p>
+                                        <p className="text-lg text-gray-700">
+                                            Time: {formatTime(r.timeTaken)}
+                                        </p>
+                                        <div className="mt-4">
+                                            {tasks.find(t => t.id === r.taskId)?.options.map((option, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`p-2 rounded mb-2 ${
+                                                        droppedItems[option] === tasks.find(t => t.id === r.taskId)?.correctAnswers[option]
+                                                            ? 'bg-green-200'
+                                                            : 'bg-red-200'
+                                                    }`}
+                                                >
+                                                    <p>{index + 1}. {option}</p>
+                                                    <p>
+                                                        <strong>Your Answer:</strong> {droppedItems[option] || 'No answer'}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Correct Answer:</strong> {tasks.find(t => t.id === r.taskId)?.correctAnswers[option]}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
-                            <button
-                                onClick={resetQuiz}
-                                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-full text-xl transition-colors"
-                            >
-                                Restart Quiz
-                            </button>
-                            <div className="mt-6 text-center">
-                                <Link to="/" className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold">
-                                    <Home size={24} /> Back to Home
+                            <div className="flex justify-center space-x-4">
+                                <button
+                                    onClick={resetQuiz}
+                                    className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
+                                >
+                                    🔄 Restart Quiz
+                                </button>
+                                <Link to="/">
+                                    <button
+                                        className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                                        aria-label="Back to home"
+                                    >
+                                        <Home className="mr-3 h-5 w-5 inline" />
+                                        🏠 Home
+                                    </button>
                                 </Link>
                             </div>
                         </>
