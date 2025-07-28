@@ -4,86 +4,58 @@ import { Home } from 'lucide-react';
 import axios from 'axios';
 import Header from "@/components/Header.tsx";
 
-const ReadWrite = () => {
-    const [language, setLanguage] = useState("english");
-    const [isSoundEnabled, setIsSoundEnabled] = useState(false);
+// Define types for the question structure
+interface Question {
+    id: number;
+    scenario: string;
+    steps: string[];
+    correctOrder: number[];
+}
+
+// Define type for the full quiz document
+interface Quiz {
+    _id: string;
+    quizName: string;
+    questions: Question[];
+    createdAt: string;
+    __v: number;
+}
+
+const ReadWrite: React.FC = () => {
+    const [language] = useState("english");
+    const [isSoundEnabled] = useState(false);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [saveStatus, setSaveStatus] = useState(null);
+    const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [time, setTime] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [stepsOrder, setStepsOrder] = useState(Array(5).fill(''));
-    const [marks, setMarks] = useState(Array(5).fill(0)); // Marks for each question
+    const [stepsOrder, setStepsOrder] = useState<string[]>(Array(5).fill(''));
+    const [marks, setMarks] = useState<number[]>([]);
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [showResults, setShowResults] = useState(false);
     const [userId, setUserId] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [user, setUser] = useState('');
-
-    const questions = [
-        {
-            id: 1,
-            scenario: "Help Ruwan to light up a small bulb using a battery and wires.",
-            steps: [
-                "Ruwan connects one end of the wire to the battery's (+) terminal and the other to the bulb's metal base.",
-                "The bulb lights up brightly, and Ruwan is happy!",
-                "Ruwan checks that all connections are secure and touching the metal parts.",
-                "He connects the other end of the second wire to the battery's (-) terminal and other to the bulb's metal side of the bulb.",
-                "Ruwan collects a small bulb, a battery, and two wires."
-            ],
-            correctOrder: [4, 0, 2, 3, 1]
-        },
-        {
-            id: 2,
-            scenario: "Assist Ruwan in building a simple circuit with a switch.",
-            steps: [
-                "Ruwan connects the switch to the circuit.",
-                "The circuit works, and the bulb lights up.",
-                "Ruwan tests the switch to ensure it turns the bulb on and off.",
-                "He connects the wire from the battery to the bulb.",
-                "Ruwan gathers a bulb, battery, wires, and a switch."
-            ],
-            correctOrder: [4, 3, 0, 2, 1]
-        },
-        {
-            id: 3,
-            scenario: "Guide Ruwan to set up a series circuit.",
-            steps: [
-                "Ruwan connects the second bulb to the first bulb.",
-                "The bulbs light up in sequence.",
-                "He connects the battery to the first bulb.",
-                "Ruwan checks all connections for tightness.",
-                "Ruwan collects two bulbs, a battery, and wires."
-            ],
-            correctOrder: [4, 2, 0, 3, 1]
-        },
-        {
-            id: 4,
-            scenario: "Help Ruwan create a parallel circuit.",
-            steps: [
-                "Ruwan connects the second bulb parallel to the first.",
-                "Both bulbs light up independently.",
-                "He connects the battery to the first bulb.",
-                "Ruwan ensures all wires are secure.",
-                "Ruwan gathers two bulbs, a battery, and wires."
-            ],
-            correctOrder: [4, 2, 0, 3, 1]
-        },
-        {
-            id: 5,
-            scenario: "Assist Ruwan in troubleshooting a circuit.",
-            steps: [
-                "Ruwan replaces a broken wire.",
-                "The bulb lights up after fixing.",
-                "He checks for loose connections.",
-                "Ruwan notices the bulb is not lighting.",
-                "Ruwan gathers tools and inspects the circuit."
-            ],
-            correctOrder: [4, 3, 2, 0, 1]
-        }
-    ];
+    const [quiz, setQuiz] = useState<Quiz | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const fetchQuestions = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/readandwrite/questions');
+                setQuiz(response.data);
+                setMarks(Array(response.data.questions?.length || 5).fill(0));
+                setLoading(false);
+                console.log('Fetched quiz:', response.data);
+            } catch (err: any) {
+                setError('Failed to load quiz. Please try again.');
+                setLoading(false);
+                console.error('Error fetching quiz:', err.response?.data || err.message);
+            }
+        };
+        fetchQuestions();
+
         const userData = JSON.parse(localStorage.getItem('currentUser') || '{}');
         setUser(userData.id || '');
         setUserId(userData.userId || '');
@@ -92,7 +64,7 @@ const ReadWrite = () => {
     }, []);
 
     useEffect(() => {
-        let timer;
+        let timer: NodeJS.Timeout;
         if (isTimerRunning) {
             timer = setInterval(() => {
                 setTime(prev => prev + 1);
@@ -107,7 +79,7 @@ const ReadWrite = () => {
         }
     };
 
-    const handleOrderChange = (index, value) => {
+    const handleOrderChange = (index: number, value: string) => {
         const newOrder = [...stepsOrder];
         const numValue = parseInt(value, 10);
         if (numValue >= 1 && numValue <= 5 && !newOrder.includes(value)) {
@@ -118,17 +90,19 @@ const ReadWrite = () => {
 
     const calculateMarksForCurrent = () => {
         const userOrder = stepsOrder.map(val => parseInt(val) - 1).filter(val => !isNaN(val));
-        const currentQuestion = questions[currentQuestionIndex];
+        const currentQuestion = quiz?.questions[currentQuestionIndex];
         let correct = 0;
-        for (let i = 0; i < 5; i++) {
-            if (userOrder[i] === currentQuestion.correctOrder[i]) correct++;
+        if (currentQuestion && userOrder.length === 5) {
+            for (let i = 0; i < 5; i++) {
+                if (userOrder[i] === currentQuestion.correctOrder[i]) correct++;
+            }
         }
         return correct;
     };
 
     const handleNext = () => {
-        if (!isTimerRunning) return;
-        if (currentQuestionIndex < questions.length - 1 && !isSubmitted) {
+        if (!isTimerRunning || !quiz) return;
+        if (currentQuestionIndex < quiz.questions.length - 1 && !isSubmitted) {
             const newMarks = [...marks];
             newMarks[currentQuestionIndex] = calculateMarksForCurrent();
             setMarks(newMarks);
@@ -149,21 +123,21 @@ const ReadWrite = () => {
         }
     };
 
-    const saveQuizResults = async (totalMarks, finalTime) => {
+    const saveQuizResults = async (totalMarks: number, finalTime: number) => {
         try {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
-                quizName: "READANDWRITE",
+                quizName: "READWRITE",
                 user,
                 userId,
                 username,
                 email,
-                totalMarks: totalMarks,
+                totalMarks,
                 totalTime: finalTime,
                 date: new Date().toISOString()
             });
             setSaveStatus('Quiz results saved successfully!');
             console.log('Quiz results saved:', response.data);
-        } catch (error) {
+        } catch (error: any) {
             setSaveStatus('Error saving quiz results. Please try again.');
             console.error('Error saving quiz results:', error.response?.data || error.message);
         }
@@ -171,7 +145,7 @@ const ReadWrite = () => {
 
     const resetQuiz = () => {
         setStepsOrder(Array(5).fill(''));
-        setMarks(Array(5).fill(0));
+        setMarks(Array(quiz?.questions.length || 5).fill(0));
         setIsSubmitted(false);
         setShowResults(false);
         setTime(0);
@@ -180,14 +154,15 @@ const ReadWrite = () => {
         setCurrentQuestionIndex(0);
     };
 
-    const formatTime = (seconds) => {
+    const formatTime = (seconds: number) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
     const getEncouragementMessage = () => {
-        const totalPercentage = (marks.reduce((sum, mark) => sum + mark, 0) / (questions.length * 5)) * 100;
+        if (!quiz) return "";
+        const totalPercentage = (marks.reduce((sum, mark) => sum + mark, 0) / (quiz.questions.length * 5)) * 100;
         if (totalPercentage === 100) return "🌟 Perfect! You're a sequencing master! 🌟";
         if (totalPercentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
         if (totalPercentage >= 60) return "👍 Good job! Keep practicing! 👍";
@@ -196,11 +171,36 @@ const ReadWrite = () => {
     };
 
     const getScoreColor = () => {
-        const totalPercentage = (marks.reduce((sum, mark) => sum + mark, 0) / (questions.length * 5)) * 100;
+        if (!quiz) return "text-gray-500";
+        const totalPercentage = (marks.reduce((sum, mark) => sum + mark, 0) / (quiz.questions.length * 5)) * 100;
         if (totalPercentage >= 80) return "text-green-600";
         if (totalPercentage >= 60) return "text-yellow-600";
         return "text-red-500";
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <p className="text-2xl text-white">Loading quiz...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <p className="text-2xl text-red-600">{error}</p>
+            </div>
+        );
+    }
+
+    if (!quiz || quiz.questions.length === 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <p className="text-2xl text-white">No questions available for this quiz.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
@@ -208,7 +208,7 @@ const ReadWrite = () => {
             <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
             <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
-            <Header></Header>
+            <Header />
 
             <div className="container mx-auto px-4 py-12">
                 {saveStatus && (
@@ -220,12 +220,12 @@ const ReadWrite = () => {
                     <div className="mb-8 bg-white/95 rounded-3xl p-6 border-4 border-green-400 shadow-2xl">
                         <h2 className="text-2xl font-bold text-green-800 mb-4">Quiz Results</h2>
                         <div className={`text-4xl font-bold mb-6 ${getScoreColor()}`}>
-                            Total Score: {marks.reduce((sum, mark) => sum + mark, 0)} / {questions.length * 5}
+                            Total Score: {marks.reduce((sum, mark) => sum + mark, 0)} / {quiz.questions.length * 5}
                         </div>
                         <p className="text-2xl font-bold text-indigo-700 mb-4">
                             {getEncouragementMessage()}
                         </p>
-                        {questions.map((question, index) => (
+                        {quiz.questions.map((question: Question, index: number) => (
                             <div key={index} className="p-4 bg-gray-100 rounded-lg mb-2">
                                 <p className="font-semibold">Question {index + 1}: {question.scenario}</p>
                                 <p>Score: {marks[index]} / 5</p>
@@ -238,17 +238,20 @@ const ReadWrite = () => {
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🧠</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 Test 1 - Read and Write
+                            🪄 {quiz.quizName} - Read and Write
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
                     </div>
                     <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
                         <p className="text-2xl text-purple-800 font-bold mb-4">
-                            Hi {username || 'Student'}! 👋 {questions[currentQuestionIndex].scenario}
+                            Hi {username || 'Student'}! 👋 {quiz.questions[currentQuestionIndex].scenario}
                         </p>
                         <p className="text-lg text-blue-700">
                             🌟 Put the steps in the correct order to help Ruwan succeed! 🌟
+                        </p>
+                        <p className="text-md text-gray-600">
+                            Created on: {new Date(quiz.createdAt).toLocaleDateString()}
                         </p>
                     </div>
                 </div>
@@ -259,7 +262,7 @@ const ReadWrite = () => {
                             <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-8 border-2 border-dashed border-blue-300">
                                 <div className="mb-6 text-center">
                                     <h2 className="text-3xl font-bold text-purple-800 bg-yellow-200 p-4 rounded-lg inline-block">
-                                        Scenario: {questions[currentQuestionIndex].scenario}
+                                        Scenario: {quiz.questions[currentQuestionIndex].scenario}
                                     </h2>
                                 </div>
                                 <div className="flex items-center mb-4 justify-center">
@@ -269,7 +272,7 @@ const ReadWrite = () => {
                                     </p>
                                 </div>
                                 <div className="mt-6 space-y-4">
-                                    {questions[currentQuestionIndex].steps.map((step, index) => (
+                                    {quiz.questions[currentQuestionIndex].steps.map((step: string, index: number) => (
                                         <div key={index} className="flex items-center gap-4">
                                             <input
                                                 type="number"
@@ -287,9 +290,9 @@ const ReadWrite = () => {
                             </div>
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
-                                <span className="text-2xl mr-6 font-bold text-blue-800">
-                                    ⏱️ Time: {formatTime(time)}
-                                </span>
+                <span className="text-2xl mr-6 font-bold text-blue-800">
+                  ⏱️ Time: {formatTime(time)}
+                </span>
                                 <button
                                     onClick={handleStartTimer}
                                     disabled={isTimerRunning}
@@ -305,7 +308,7 @@ const ReadWrite = () => {
                                     disabled={!isTimerRunning || stepsOrder.filter(val => val).length !== 5 || isSubmitted}
                                     className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
                                 >
-                                    {currentQuestionIndex < questions.length - 1 ? "Next" : "Submit"}
+                                    {currentQuestionIndex < quiz.questions.length - 1 ? "Next" : "Submit"}
                                 </button>
                             </div>
                         </div>
@@ -314,7 +317,7 @@ const ReadWrite = () => {
                             <div className="bg-gradient-to-r from-yellow-200 to-pink-200 rounded-2xl p-8 border-4 border-yellow-400">
                                 <h2 className="text-5xl font-bold text-purple-800 mb-6">🎊 Quiz Results! 🎊</h2>
                                 <div className={`text-8xl font-bold mb-6 ${getScoreColor()}`}>
-                                    {marks.reduce((sum, mark) => sum + mark, 0)} / {questions.length * 5}
+                                    {marks.reduce((sum, mark) => sum + mark, 0)} / {quiz.questions.length * 5}
                                 </div>
                                 <div className="text-3xl font-bold text-indigo-700 mb-4">
                                     {getEncouragementMessage()}
@@ -322,11 +325,11 @@ const ReadWrite = () => {
                             </div>
 
                             <div className="space-y-6 flex-1 overflow-y-auto w-full">
-                                {questions.map((question, index) => (
+                                {quiz.questions.map((question: Question, index: number) => (
                                     <div key={index} className="p-6 rounded-xl border-2 bg-gray-100 text-center">
                                         <p className="font-semibold text-gray-800 text-xl mb-3">Question {index + 1}: {question.scenario}</p>
                                         <div className="grid grid-cols-1 gap-4 justify-items-center">
-                                            {question.steps.map((step, stepIndex) => (
+                                            {question.steps.map((step: string, stepIndex: number) => (
                                                 <div key={stepIndex} className={`p-2 rounded ${question.correctOrder[stepIndex] === parseInt(stepsOrder[stepIndex]) - 1 ? 'bg-green-100' : 'bg-red-100'}`}>
                                                     <p>Step {stepIndex + 1}: {step}</p>
                                                     <p><strong>Your order:</strong> {stepsOrder[stepIndex] || 'No order'}</p>

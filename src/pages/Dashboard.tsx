@@ -66,6 +66,7 @@ const Dashboard = () => {
             { name: "Save Visual Quiz", icon: MessageSquare, path: "/save-visual-quiz" },
             { name: "Save Auditory Quiz", icon: MessageSquare, path: "/save-auditory-quiz" },
             { name: "Save Drag & Drop Quiz", icon: MessageSquare, path: "/save-drag-and-drop-quiz" },
+            { name: "Save Read & Write Quiz", icon: MessageSquare, path: "/save-read-write-quiz" },
 
         ] : [])
     ];
