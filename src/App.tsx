@@ -31,6 +31,8 @@ import SaveVisualQuiz from "@/pages/games/SaveVisualQuiz.tsx";
 import SaveAuditoryQuiz from "@/pages/games/SaveAuditoryQuiz.tsx";
 import SaveDragAndDropQuiz from "@/pages/games/SaveDragAndDrop.tsx";
 import Kinesthetic from "@/pages/games/Kinesthetic.tsx";
+import SaveReadWrite from "@/pages/games/SaveReadWriteQuiz.tsx";
+import SaveReadWriteQuiz from "@/pages/games/SaveReadWriteQuiz.tsx";
 
 
 const queryClient = new QueryClient();
@@ -175,6 +177,11 @@ const App = () => (
             <Route path="/save-drag-and-drop-quiz" element={
               <ProtectedRoute>
                 <SaveDragAndDropQuiz />
+              </ProtectedRoute>
+            } />
+            <Route path="/save-read-write-quiz" element={
+              <ProtectedRoute>
+                <SaveReadWriteQuiz />
               </ProtectedRoute>
             } />
             <Route path="/add-activity" element={
