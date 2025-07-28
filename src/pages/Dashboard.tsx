@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import Footer from "@/components/Footer";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 
 interface QuizResult {
@@ -41,6 +41,8 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10; // Number of results per page
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userName = currentUser.userName || 'User';
     const isTeacher = currentUser.role === 'TEACHER';
@@ -67,7 +69,7 @@ const Dashboard = () => {
             { name: "Save Auditory Quiz", icon: MessageSquare, path: "/save-auditory-quiz" },
             { name: "Save Drag & Drop Quiz", icon: MessageSquare, path: "/save-drag-and-drop-quiz" },
             { name: "Save Read & Write Quiz", icon: MessageSquare, path: "/save-read-write-quiz" },
-
+            { name: "Save Kinesthetic Quiz", icon: MessageSquare, path: "/save-kinesthetic-quiz" },
         ] : [])
     ];
 
@@ -107,6 +109,33 @@ const Dashboard = () => {
         result.quizName.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Pagination logic
+    const { totalPages, currentResults, indexOfFirstItem, indexOfLastItem } = useMemo(() => {
+        const totalPages = Math.ceil(filteredQuizResults.length / itemsPerPage);
+        const indexOfLastItem = currentPage * itemsPerPage;
+        const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+        const currentResults = filteredQuizResults.slice(indexOfFirstItem, indexOfLastItem);
+        return { totalPages, currentResults, indexOfFirstItem, indexOfLastItem };
+    }, [filteredQuizResults, currentPage, itemsPerPage]);
+
+    // Handle page change
+    const handlePageChange = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
+    };
+
+    // Handle Previous/Next buttons
+    const handlePrevious = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    const handleNext = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-green-50 flex flex-col">
             <div className="flex flex-1">
@@ -115,7 +144,7 @@ const Dashboard = () => {
                     <div className="text-center mb-8">
                         <div
                             className="w-24 h-24 bg-pink-300 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-white">
-                            <img src="/uploads/00d4cb2f-56bd-4d1f-955b-70e4a28236e0.png" alt="Student"
+                            <img src="/Uploads/00d4cb2f-56bd-4d1f-955b-70e4a28236e0.png" alt="Student"
                                  className="w-20 h-20 rounded-full object-cover"/>
                         </div>
                         <h2 className="text-xl font-bold text-gray-800">Hello {userName}! 👋</h2>
@@ -137,7 +166,6 @@ const Dashboard = () => {
                             </Link>
                         ))}
                     </nav>
-                    
                 </div>
 
                 {/* Main Content */}
@@ -240,7 +268,10 @@ const Dashboard = () => {
                                             type="text"
                                             placeholder="Search by quiz name..."
                                             value={searchQuery}
-                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                setCurrentPage(1); // Reset to first page on search
+                                            }}
                                             className="pl-10 border-blue-300 focus:border-blue-500"
                                         />
                                     </div>
@@ -258,39 +289,89 @@ const Dashboard = () => {
                                             : "No quiz results found."}
                                     </div>
                                 ) : (
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left border-collapse">
-                                            <thead>
-                                            <tr className="bg-gradient-to-r from-blue-100 to-purple-100">
-                                                <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Quiz Name</th>
-                                                <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Student Name</th>
-                                                <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Score</th>
-                                                <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Date</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody>
-                                            {filteredQuizResults.map((result) => (
-                                                <tr
-                                                    key={result._id}
-                                                    className="hover:bg-blue-50 transition-colors duration-200"
-                                                >
-                                                    <td className="p-4 border-b border-blue-100">{result.quizName}</td>
-                                                    <td className="p-4 border-b border-blue-100">{result.username}</td>
-                                                    <td className="p-4 border-b border-blue-100">{result.totalMarks}</td>
-                                                    <td className="p-4 border-b border-blue-100">
-                                                        {new Date(result.date).toLocaleDateString('en-US', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </td>
+                                    <>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                <tr className="bg-gradient-to-r from-blue-100 to-purple-100">
+                                                    <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Quiz Name</th>
+                                                    <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Student Name</th>
+                                                    <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Score</th>
+                                                    <th className="p-4 font-bold text-blue-800 border-b-2 border-blue-200">Date</th>
                                                 </tr>
-                                            ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                </thead>
+                                                <tbody>
+                                                {currentResults.map((result) => (
+                                                    <tr
+                                                        key={result._id}
+                                                        className="hover:bg-blue-50 transition-colors duration-200"
+                                                    >
+                                                        <td className="p-4 border-b border-blue-100">{result.quizName}</td>
+                                                        <td className="p-4 border-b border-blue-100">{result.username}</td>
+                                                        <td className="p-4 border-b border-blue-100">{result.totalMarks}</td>
+                                                        <td className="p-4 border-b border-blue-100">
+                                                            {new Date(result.date).toLocaleDateString('en-US', {
+                                                                year: 'numeric',
+                                                                month: 'short',
+                                                                day: 'numeric',
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {/* Pagination Controls */}
+                                        {totalPages > 1 && (
+                                            <div className="mt-6 flex items-center justify-between">
+                                                <div className="text-sm text-gray-600">
+                                                    Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredQuizResults.length)} of {filteredQuizResults.length} results
+                                                </div>
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        onClick={handlePrevious}
+                                                        disabled={currentPage === 1}
+                                                        className={`px-4 py-2 rounded-md text-sm font-medium ${
+                                                            currentPage === 1
+                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                        }`}
+                                                        aria-label="Previous page"
+                                                    >
+                                                        Previous
+                                                    </button>
+                                                    {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                                                        <button
+                                                            key={page}
+                                                            onClick={() => handlePageChange(page)}
+                                                            className={`px-3 py-1 rounded-md text-sm font-medium ${
+                                                                currentPage === page
+                                                                    ? 'bg-blue-600 text-white'
+                                                                    : 'bg-gray-100 text-gray-700 hover:bg-blue-100'
+                                                            }`}
+                                                            aria-label={`Go to page ${page}`}
+                                                        >
+                                                            {page}
+                                                        </button>
+                                                    ))}
+                                                    <button
+                                                        onClick={handleNext}
+                                                        disabled={currentPage === totalPages}
+                                                        className={`px-4 py-2 rounded-md text-sm font-medium ${
+                                                            currentPage === totalPages
+                                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                                                        }`}
+                                                        aria-label="Next page"
+                                                    >
+                                                        Next
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </CardContent>
                         </Card>
