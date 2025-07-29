@@ -6,7 +6,7 @@ import axios from 'axios';
 const Auditory = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
 
-    const [quizData, setQuizData] = useState<{ quizName?: string; audioUrl?: string; questions?: any[] }>({});
+    const [quizzes, setQuizzes] = useState<{ _id: string; quizName?: string; audioUrl?: string; questions: any[] }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -27,18 +27,47 @@ const Auditory = () => {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [answerFeedback, setAnswerFeedback] = useState<boolean[]>([]);
 
+    // Flatten questions and track quiz boundaries
+    const [allQuestions, setAllQuestions] = useState<{ quizId: string; question: any }[]>([]);
+    const [quizIndexMap, setQuizIndexMap] = useState<{ quizId: string; startIndex: number; endIndex: number }[]>([]);
+
     useEffect(() => {
-        const fetchQuiz = async () => {
+        const fetchQuizzes = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/questions');
-                const quiz = response.data;
+                const quizzesData = response.data;
 
-                if (!quiz || !Array.isArray(quiz.questions)) {
-                    throw new Error("Invalid data format: Expected an object with a questions array");
+                if (!quizzesData || !Array.isArray(quizzesData)) {
+                    throw new Error("Invalid data format: Expected an array of quizzes");
                 }
 
-                setQuizData(quiz);
-                setAnswers(Array(quiz.questions.length).fill(''));
+                // Validate each quiz
+                const validQuizzes = quizzesData.filter((quiz: any) => quiz && Array.isArray(quiz.questions));
+                if (validQuizzes.length === 0) {
+                    throw new Error("No valid quizzes with questions found");
+                }
+
+                setQuizzes(validQuizzes);
+
+                // Flatten questions and create index map
+                let questionIndex = 0;
+                const flattenedQuestions: { quizId: string; question: any }[] = [];
+                const indexMap: { quizId: string; startIndex: number; endIndex: number }[] = [];
+
+                validQuizzes.forEach((quiz: any) => {
+                    const quizQuestions = quiz.questions || [];
+                    flattenedQuestions.push(...quizQuestions.map((q: any) => ({ quizId: quiz._id, question: q })));
+                    indexMap.push({
+                        quizId: quiz._id,
+                        startIndex: questionIndex,
+                        endIndex: questionIndex + quizQuestions.length - 1
+                    });
+                    questionIndex += quizQuestions.length;
+                });
+
+                setAllQuestions(flattenedQuestions);
+                setQuizIndexMap(indexMap);
+                setAnswers(Array(flattenedQuestions.length).fill(''));
                 setIsLoading(false);
             } catch (err) {
                 console.error("Error fetching or processing quiz data:", err);
@@ -46,7 +75,7 @@ const Auditory = () => {
                 setIsLoading(false);
             }
         };
-        fetchQuiz();
+        fetchQuizzes();
     }, []);
 
     useEffect(() => {
@@ -108,7 +137,7 @@ const Auditory = () => {
     };
 
     const handleNext = () => {
-        if (currentQuestionIndex < (quizData.questions?.length ?? 0) - 1) {
+        if (currentQuestionIndex < allQuestions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
         }
     };
@@ -126,12 +155,12 @@ const Auditory = () => {
             return;
         }
 
-        const marks = answers.map((answer, idx) =>
-            answer === quizData.questions?.[idx].correctAnswer ? 1 : 0
+        const marks = allQuestions.map((q, idx) =>
+            answers[idx] === q.question.correctAnswer ? 1 : 0
         );
 
-        const feedback = answers.map((answer, idx) =>
-            answer === quizData.questions?.[idx].correctAnswer
+        const feedback = allQuestions.map((q, idx) =>
+            answers[idx] === q.question.correctAnswer
         );
 
         setAnswerFeedback(feedback);
@@ -147,16 +176,24 @@ const Auditory = () => {
 
     const saveQuizResults = async (totalMarks: number, finalTotalTime: number) => {
         try {
-            await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
-                quizName: quizData.quizName || "AUDITORY",
-                user,
-                userId,
-                username,
-                email,
-                totalMarks,
-                date: new Date().toISOString(),
-                time: finalTotalTime
-            });
+            // Save results for each quiz
+            for (const quiz of quizzes) {
+                const quizMarks = allQuestions
+                    .filter(q => q.quizId === quiz._id)
+                    .map((q, idx) => answers[idx] === q.question.correctAnswer ? 1 : 0)
+                    .reduce((sum, mark) => sum + mark, 0);
+
+                await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
+                    quizName: quiz.quizName || "AUDITORY",
+                    user,
+                    userId,
+                    username,
+                    email,
+                    totalMarks: quizMarks,
+                    date: new Date().toISOString(),
+                    time: finalTotalTime
+                });
+            }
             setSaveStatus('Quiz results saved successfully!');
         } catch (error) {
             setSaveStatus('Error saving quiz results. Please try again.');
@@ -168,7 +205,7 @@ const Auditory = () => {
         setTime(0);
         setTotalTime(0);
         setStartTime(null);
-        setAnswers(Array(quizData.questions?.length ?? 0).fill(''));
+        setAnswers(Array(allQuestions.length).fill(''));
         setIsTimerRunning(false);
         setIsSubmitted(false);
         setAnswerFeedback([]);
@@ -181,6 +218,12 @@ const Auditory = () => {
         const remainingSeconds = seconds % 60;
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
+
+    // Find the quiz for the current question
+    const currentQuiz = quizzes.find(quiz => {
+        const map = quizIndexMap.find(m => m.quizId === quiz._id);
+        return map && currentQuestionIndex >= map.startIndex && currentQuestionIndex <= map.endIndex;
+    });
 
     if (isLoading) {
         return <div className="text-center mt-10 text-lg text-blue-700">Loading quiz...</div>;
@@ -198,19 +241,19 @@ const Auditory = () => {
                 {!isSubmitted ? (
                     <>
                         <div className="text-xl font-semibold text-blue-800 text-center mb-2">
-                            Question {currentQuestionIndex + 1} of {quizData.questions?.length}
+                            Question {currentQuestionIndex + 1} of {allQuestions.length}
                         </div>
                         <div className="text-lg mb-4 text-center">
-                            {quizData.questions?.[currentQuestionIndex]?.text}
+                            {allQuestions[currentQuestionIndex]?.question.text}
                         </div>
 
-                        <audio ref={audioRef} src="/what_does_a_battery_do.mp3" />
+                        <audio ref={audioRef} src={currentQuiz?.audioUrl || ''} />
 
                         <div className="flex justify-center gap-4 mb-4">
                             <button
                                 onClick={playAudio}
                                 className="bg-blue-500 text-white px-4 py-2 rounded-full"
-                                disabled={isPlaying}
+                                disabled={isPlaying || !currentQuiz?.audioUrl}
                             >
                                 <Play className="inline-block mr-2" size={20} /> Play
                             </button>
@@ -231,7 +274,7 @@ const Auditory = () => {
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 mb-6">
-                            {quizData.questions?.[currentQuestionIndex]?.options.map((option: string, idx: number) => (
+                            {allQuestions[currentQuestionIndex]?.question.options.map((option: string, idx: number) => (
                                 <button
                                     key={idx}
                                     onClick={() => handleAnswerSelect(option[0])}
@@ -255,7 +298,7 @@ const Auditory = () => {
                             >
                                 Previous
                             </button>
-                            {currentQuestionIndex === (quizData.questions?.length ?? 0) - 1 ? (
+                            {currentQuestionIndex === allQuestions.length - 1 ? (
                                 <button
                                     onClick={handleSubmit}
                                     className={`px-4 py-2 rounded-xl font-bold ${
@@ -293,7 +336,7 @@ const Auditory = () => {
                         <h2 className="text-2xl font-bold text-green-700 text-center mb-4">✅ Quiz Completed!</h2>
                         <p className="text-center mb-2">Total Time: {formatTime(totalTime)}</p>
                         <p className="text-center mb-6">
-                            Total Marks: {answers.filter((ans, idx) => ans === quizData.questions?.[idx].correctAnswer).length} / {quizData.questions?.length}
+                            Total Marks: {answers.filter((ans, idx) => ans === allQuestions[idx].question.correctAnswer).length} / {allQuestions.length}
                         </p>
                         <button
                             onClick={resetQuiz}
