@@ -59,13 +59,14 @@ const Visual: React.FC = () => {
     const [currentVideoTime, setCurrentVideoTime] = useState<number>(0);
     const [videoStarted, setVideoStarted] = useState<boolean>(false);
     const [totalTimeSpent, setTotalTimeSpent] = useState(0);
-
-
     const [tasks, setTasks] = useState<Task[]>([]);
     const [questionTimes, setQuestionTimes] = useState<number[]>([]);
     const [quizStartTime, setQuizStartTime] = useState<number | null>(null);
     const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    // Flattened questions for correct indexing
+    const [allQuestions, setAllQuestions] = useState<{ taskId: number; question: Question }[]>([]);
+
     // Initialize arrays and start time tracking
     useEffect(() => {
         const fetchQuizTasks = async () => {
@@ -79,14 +80,16 @@ const Visual: React.FC = () => {
 
                 setTasks(data.tasks);
 
-                const totalQuestions = data.tasks.reduce(
-                    (count: number, task: Task) => count + task.questions.length,
-                    0
-                );
+                // Flatten questions for correct indexing
+                const flattenedQuestions: { taskId: number; question: Question }[] = [];
+                data.tasks.forEach((task: Task) => {
+                    flattenedQuestions.push(...task.questions.map((q: Question) => ({ taskId: task.id, question: q })));
+                });
 
-                setAnswers(new Array(totalQuestions).fill(''));
-                setMarks(new Array(totalQuestions).fill(0));
-                setQuestionTimes(new Array(totalQuestions).fill(0));
+                setAllQuestions(flattenedQuestions);
+                setAnswers(new Array(flattenedQuestions.length).fill(''));
+                setMarks(new Array(flattenedQuestions.length).fill(0));
+                setQuestionTimes(new Array(flattenedQuestions.length).fill(0));
                 setQuizStartTime(Date.now());
                 setQuestionStartTime(Date.now());
             } catch (error) {
@@ -101,7 +104,6 @@ const Visual: React.FC = () => {
 
     // Get user data from localStorage or authentication system
     useEffect(() => {
-        // Assuming user data is stored in localStorage after login
         const storedUser = localStorage.getItem('currentUser');
         if (storedUser) {
             try {
@@ -155,14 +157,17 @@ const Visual: React.FC = () => {
     }, [isPlaying, currentTaskIndex, currentQuestionIndex, isSubmitted, currentTask]);
 
     const handleAnswerSelect = (questionIndex: number, value: string): void => {
-        const globalIndex = currentTaskIndex * 5 + questionIndex;
+        // Find global index based on flattened questions
+        const globalIndex = allQuestions.findIndex(
+            q => q.taskId === currentTask.id && q.question.id === currentTask.questions[questionIndex].id
+        );
         const newAnswers = [...answers];
-        newAnswers[globalIndex] = value.trim(); // Trim to avoid whitespace issues
+        newAnswers[globalIndex] = value.trim();
         setAnswers(newAnswers);
 
         // Record time spent on this question
         const currentTime = Date.now();
-        const timeSpent = Math.floor((currentTime - questionStartTime) / 1000);
+        const timeSpent = questionStartTime ? Math.floor((currentTime - questionStartTime) / 1000) : 0;
         const newQuestionTimes = [...questionTimes];
         newQuestionTimes[globalIndex] = timeSpent;
         setQuestionTimes(newQuestionTimes);
@@ -232,32 +237,21 @@ const Visual: React.FC = () => {
         console.log('Current answers:', answers);
 
         const newMarks: number[] = [];
-        const totalQuestions = tasks.length * 5;
-
-        // Calculate marks for each question
-        for (let taskIdx = 0; taskIdx < tasks.length; taskIdx++) {
-            const task = tasks[taskIdx];
-            for (let qIdx = 0; qIdx < task.questions.length; qIdx++) {
-                const globalIndex = taskIdx * 5 + qIdx;
-                const question = task.questions[qIdx];
-                const userAnswer = answers[globalIndex]?.trim() || '';
-                const correctAnswer = question.answer.trim();
-
-                console.log(`Question ${globalIndex + 1}:`);
-                console.log(`User answer: "${userAnswer}"`);
-                console.log(`Correct answer: "${correctAnswer}"`);
-
-                // Compare answers after trimming whitespace
-                const isCorrect = userAnswer === correctAnswer;
-                newMarks[globalIndex] = isCorrect ? 1 : 0;
-
-                console.log(`Is correct: ${isCorrect}`);
-            }
-        }
+        // Calculate marks for each question in flattened list
+        allQuestions.forEach((q, index) => {
+            const userAnswer = answers[index]?.trim() || '';
+            const correctAnswer = q.question.answer.trim();
+            console.log(`Question ${index + 1}:`);
+            console.log(`User answer: "${userAnswer}"`);
+            console.log(`Correct answer: "${correctAnswer}"`);
+            const isCorrect = userAnswer === correctAnswer;
+            newMarks[index] = isCorrect ? 1 : 0;
+            console.log(`Is correct: ${isCorrect}`);
+        });
 
         const total = newMarks.reduce((sum, mark) => sum + mark, 0);
         const currentTime = Date.now();
-        const totalTime = Math.floor((currentTime - quizStartTime) / 1000);
+        const totalTime = quizStartTime ? Math.floor((currentTime - quizStartTime) / 1000) : 0;
 
         setMarks(newMarks);
         setTotalMarks(total);
@@ -285,10 +279,8 @@ const Visual: React.FC = () => {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', quizData, {
                 headers: {
                     'Content-Type': 'application/json',
-                    // Add authentication token if required
-                    // 'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                timeout: 10000 // 10 second timeout
+                timeout: 10000
             });
 
             if (response.status === 200 || response.status === 201) {
@@ -308,10 +300,9 @@ const Visual: React.FC = () => {
     };
 
     const resetQuiz = (): void => {
-        const totalQuestions = tasks.length * 5;
-        setAnswers(new Array(totalQuestions).fill(''));
-        setMarks(new Array(totalQuestions).fill(0));
-        setQuestionTimes(new Array(totalQuestions).fill(0));
+        setAnswers(new Array(allQuestions.length).fill(''));
+        setMarks(new Array(allQuestions.length).fill(0));
+        setQuestionTimes(new Array(allQuestions.length).fill(0));
         setTotalMarks(0);
         setTotalTimeSpent(0);
         setIsSubmitted(false);
@@ -333,7 +324,7 @@ const Visual: React.FC = () => {
     };
 
     const getEncouragementMessage = (): string => {
-        const percentage = (totalMarks / (tasks.length * 5)) * 100;
+        const percentage = (totalMarks / allQuestions.length) * 100;
         if (percentage === 100) return "🌟 Perfect! You're a visual genius! 🌟";
         if (percentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
         if (percentage >= 60) return "👍 Good job! Keep learning! 👍";
@@ -342,7 +333,7 @@ const Visual: React.FC = () => {
     };
 
     const getScoreColor = (): string => {
-        const percentage = (totalMarks / (tasks.length * 5)) * 100;
+        const percentage = (totalMarks / allQuestions.length) * 100;
         if (percentage >= 80) return "text-green-600";
         if (percentage >= 60) return "text-yellow-600";
         return "text-red-500";
@@ -369,8 +360,7 @@ const Visual: React.FC = () => {
                     </div>
                 )}
 
-                {/* Time Display */}
-                {quizStartTime > 0 && !isSubmitted && (
+                {quizStartTime && !isSubmitted && (
                     <div className="bg-white/90 rounded-xl p-4 mb-4 text-center">
                         <p className="text-lg font-semibold text-purple-800">
                             ⏱️ Time Elapsed: {formatTime(Math.floor((Date.now() - quizStartTime) / 1000))}
@@ -444,8 +434,10 @@ const Visual: React.FC = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mt-6">
                                     {currentTask.questions[currentQuestionIndex].options.map((option, idx) => {
-                                        const currentGlobalIndex = currentTaskIndex * 5 + currentQuestionIndex;
-                                        const isSelected = answers[currentGlobalIndex] === option;
+                                        const globalIndex = allQuestions.findIndex(
+                                            q => q.taskId === currentTask.id && q.question.id === currentTask.questions[currentQuestionIndex].id
+                                        );
+                                        const isSelected = answers[globalIndex] === option;
 
                                         return (
                                             <button
@@ -463,7 +455,7 @@ const Visual: React.FC = () => {
                             <div className="flex justify-center mt-10">
                                 <button
                                     onClick={handleNext}
-                                    disabled={!answers[currentTaskIndex * 5 + currentQuestionIndex] || isSubmitted}
+                                    disabled={!answers[allQuestions.findIndex(q => q.taskId === currentTask.id && q.question.id === currentTask.questions[currentQuestionIndex].id)] || isSubmitted}
                                     className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
                                 >
                                     {currentQuestionIndex < currentTask.questions.length - 1 || currentTaskIndex < tasks.length - 1 ? 'Next!' : 'Submit My Answers!'}
@@ -477,7 +469,7 @@ const Visual: React.FC = () => {
                             <div className="bg-gradient-to-r from-yellow-200 to-pink-200 rounded-2xl p-8 border-4 border-yellow-400">
                                 <h2 className="text-5xl font-bold text-purple-800 mb-6">🎊 Quiz Results! 🎊</h2>
                                 <div className={`text-8xl font-bold mb-6 ${getScoreColor()}`}>
-                                    {totalMarks} / {tasks.length * 5}
+                                    {totalMarks} / {allQuestions.length}
                                 </div>
                                 <div className="text-3xl font-bold text-indigo-700 mb-4">
                                     {getEncouragementMessage()}
@@ -491,11 +483,13 @@ const Visual: React.FC = () => {
                                     <div key={task.id}>
                                         <h3 className="text-2xl font-semibold text-purple-800 mb-4">Task {task.id} Results</h3>
                                         {task.questions.map((question, qIdx) => {
-                                            const index = taskIdx * 5 + qIdx;
-                                            const userAnswer = answers[index] || 'No answer';
+                                            const globalIndex = allQuestions.findIndex(
+                                                q => q.taskId === task.id && q.question.id === question.id
+                                            );
+                                            const userAnswer = answers[globalIndex] || 'No answer';
                                             const correctAnswer = question.answer;
-                                            const isCorrect = marks[index] === 1;
-                                            const timeSpent = questionTimes[index] || 0;
+                                            const isCorrect = marks[globalIndex] === 1;
+                                            const timeSpent = questionTimes[globalIndex] || 0;
 
                                             return (
                                                 <div key={question.id} className={`p-6 rounded-xl border-2 ${isCorrect ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'} text-center mb-4`}>
