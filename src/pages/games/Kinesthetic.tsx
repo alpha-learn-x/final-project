@@ -494,48 +494,6 @@ const Kinesthetic: React.FC = () => {
                                     Total Marks: {results.reduce((acc, r) => acc + r.marks, 0)} / {tasks.length * 5}
                                 </p>
                             </div>
-                            <div className="space-y-4 mb-8 max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg border-2 border-green-400">
-                                {results.map(r => (
-                                    <div
-                                        key={r.taskId}
-                                        className={`p-4 rounded-xl border-2 ${
-                                            r.marks === 5 ? 'bg-green-100 border-green-400' :
-                                                r.marks >= 3 ? 'bg-yellow-100 border-yellow-400' :
-                                                    'bg-red-100 border-red-400'
-                                        }`}
-                                    >
-                                        <p className="font-semibold text-gray-800 text-lg mb-2">
-                                            Task {r.taskId}
-                                        </p>
-                                        <p className={`text-lg font-bold ${r.marks === 5 ? 'text-green-600' : r.marks >= 3 ? 'text-yellow-600' : 'text-red-500'}`}>
-                                            Score: {r.marks} / 5
-                                        </p>
-                                        <p className="text-lg text-gray-700">
-                                            Time: {formatTime(r.timeTaken)}
-                                        </p>
-                                        <div className="mt-4">
-                                            {tasks.find(t => t.id === r.taskId)?.options.map((option, index) => (
-                                                <div
-                                                    key={index}
-                                                    className={`p-2 rounded mb-2 ${
-                                                        droppedItems[option] === tasks.find(t => t.id === r.taskId)?.correctAnswers[option]
-                                                            ? 'bg-green-200'
-                                                            : 'bg-red-200'
-                                                    }`}
-                                                >
-                                                    <p>{index + 1}. {option}</p>
-                                                    <p>
-                                                        <strong>Your Answer:</strong> {droppedItems[option] || 'No answer'}
-                                                    </p>
-                                                    <p>
-                                                        <strong>Correct Answer:</strong> {tasks.find(t => t.id === r.taskId)?.correctAnswers[option]}
-                                                    </p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                             <div className="flex justify-center space-x-4">
                                 <button
                                     onClick={resetQuiz}
