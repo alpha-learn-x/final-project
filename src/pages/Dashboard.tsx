@@ -41,11 +41,13 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [userQuizError, setUserQuizError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; // Number of results per page
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userName = currentUser.userName || 'User';
     const isTeacher = currentUser.role === 'TEACHER';
+    const isStudent = currentUser.role === 'STUDENT' || currentUser.role === 'USER';
 
     const toggleSound = () => {
         setIsSoundEnabled(!isSoundEnabled);
@@ -81,19 +83,51 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
+        const token = localStorage.getItem('authToken');
+        console.log('Auth Token:', token);
+
         const fetchQuizResults = async () => {
             setLoading(true);
             setError(null);
+            if (!token) {
+                setError('No authentication token found. Please sign in.');
+                console.error('No token for quiz results');
+                setLoading(false);
+                return;
+            }
             try {
                 const response = await axios.get('http://localhost:5000/api/v1/quizzes/get-all-quiz-results', {
-                    params: isTeacher ? {} : { searchText: userName }
+                    params: isTeacher ? {} : { searchText: userName },
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
                 });
                 setQuizResults(response.data.data);
             } catch (error: any) {
                 console.error('Error fetching quiz results:', error.response?.data || error.message);
-                setError('Failed to load quiz results. Please try again later.');
+                setError(error.response?.data?.message || 'Failed to load quiz results. Please try again later.');
             } finally {
                 setLoading(false);
+            }
+        };
+
+        const fetchUserQuizTotals = async () => {
+            setUserQuizError(null);
+            if (!token) {
+                setUserQuizError('No authentication token found. Please sign in.');
+                console.error('No token for user quiz totals');
+                return;
+            }
+            try {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/user-quiz-totals', {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                console.log('User quiz totals response:', response.data);
+            } catch (error: any) {
+                console.error('Error fetching user quiz totals:', error.response?.data || error.message);
+                setUserQuizError(error.response?.data?.message || 'Failed to load quiz totals. Please try again later.');
             }
         };
 
@@ -103,7 +137,11 @@ const Dashboard = () => {
             setError('No user logged in. Please sign in to view quiz results.');
             setLoading(false);
         }
-    }, [userName, isTeacher]);
+
+        if (isStudent) {
+            fetchUserQuizTotals();
+        }
+    }, [userName, isTeacher, isStudent]);
 
     const filteredQuizResults = quizResults.filter((result) =>
         result.quizName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -217,44 +255,55 @@ const Dashboard = () => {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h3 className="text-xl font-bold text-pink-800 mb-2">Teacher Dashboard</h3>
-                                    <p className="text-pink-600">Welcome back! Here's what's happening with your students today.</p>
+                                    <h3 className="text-xl font-bold text-pink-800 mb-2">{isTeacher ? "Teacher" : "Student"} Dashboard</h3>
+                                    <p className="text-pink-600">Welcome back! Here's what's happening today.</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Metrics Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <Card className="bg-purple-100 border-purple-200">
-                            <CardContent className="p-6 text-center">
-                                <p className="text-purple-800">Total Students</p>
-                                <h3 className="text-2xl font-bold text-purple-900">{teacherMetrics.totalStudents}</h3>
-                                <p className="text-sm text-purple-600">Active learners: {teacherMetrics.activeLearners}</p>
+                    {/* Error Message for Students */}
+                    {isStudent && userQuizError && (
+                        <Card className="mb-8">
+                            <CardContent className="p-6">
+                                <div className="text-center text-red-600">{userQuizError}</div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-green-100 border-green-200">
-                            <CardContent className="p-6 text-center">
-                                <p className="text-green-800">Activities Assigned</p>
-                                <h3 className="text-2xl font-bold text-green-900">{teacherMetrics.activeLearners}</h3>
-                                <p className="text-sm text-green-600">+12% from last week</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-blue-100 border-blue-200">
-                            <CardContent className="p-6 text-center">
-                                <p className="text-blue-800">Average Progress</p>
-                                <h3 className="text-2xl font-bold text-blue-900">{teacherMetrics.averageProgress}%</h3>
-                                <p className="text-sm text-blue-600">Class completion rate +3% from last week</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-yellow-100 border-yellow-200">
-                            <CardContent className="p-6 text-center">
-                                <p className="text-yellow-800">Need Attention</p>
-                                <h3 className="text-2xl font-bold text-yellow-900">{teacherMetrics.needAttention}</h3>
-                                <p className="text-sm text-yellow-600">Students struggling +2% from last week</p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    )}
+
+                    {/* Metrics Cards - Only for Teachers */}
+                    {isTeacher && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <Card className="bg-purple-100 border-purple-200">
+                                <CardContent className="p-6 text-center">
+                                    <p className="text-purple-800">Total Students</p>
+                                    <h3 className="text-2xl font-bold text-purple-900">{teacherMetrics.totalStudents}</h3>
+                                    <p className="text-sm text-purple-600">Active learners: {teacherMetrics.activeLearners}</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-green-100 border-green-200">
+                                <CardContent className="p-6 text-center">
+                                    <p className="text-green-800">Activities Assigned</p>
+                                    <h3 className="text-2xl font-bold text-green-900">{teacherMetrics.activeLearners}</h3>
+                                    <p className="text-sm text-green-600">+12% from last week</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-blue-100 border-blue-200">
+                                <CardContent className="p-6 text-center">
+                                    <p className="text-blue-800">Average Progress</p>
+                                    <h3 className="text-2xl font-bold text-blue-900">{teacherMetrics.averageProgress}%</h3>
+                                    <p className="text-sm text-blue-600">Class completion rate +3% from last week</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-yellow-100 border-yellow-200">
+                                <CardContent className="p-6 text-center">
+                                    <p className="text-yellow-800">Need Attention</p>
+                                    <h3 className="text-2xl font-bold text-yellow-900">{teacherMetrics.needAttention}</h3>
+                                    <p className="text-sm text-yellow-600">Students struggling +2% from last week</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
 
                     {/* Quiz Results Table - Only for Teachers */}
                     {isTeacher && (
