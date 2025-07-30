@@ -429,7 +429,7 @@ const Visual: React.FC = () => {
                                 <div className="flex items-center mb-4 justify-center">
                                     <span className="text-4xl mr-4">📝</span>
                                     <p className="text-2xl font-bold text-purple-800 text-center">
-                                        Question {currentQuestionIndex + 1} (Task {currentTask.id}): {currentTask.questions[currentQuestionIndex].text}
+                                        Question {currentQuestionIndex + 1} : {currentTask.questions[currentQuestionIndex].text}
                                     </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 mt-6">
