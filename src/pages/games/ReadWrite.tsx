@@ -46,7 +46,7 @@ const ReadWrite: React.FC = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [user, setUser] = useState('');
-    const [quizName, setQuizName] = useState<string>('READWRITE');
+    const [quizName, setQuizName] = useState<string>('Read and Write');
     const [questions, setQuestions] = useState<Question[]>([]); // Changed to store all questions
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -380,7 +380,7 @@ const ReadWrite: React.FC = () => {
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🧠</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 {quizName} - Read and Write
+                            🪄 Test 1 - {quizName}
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
@@ -606,7 +606,7 @@ const ReadWrite: React.FC = () => {
                                         aria-label="Back to home"
                                     >
                                         <Home className="mr-3 h-5 w-5 inline" />
-                                        🏠 Home
+                                        Home
                                     </button>
                                 </Link>
                             </div>

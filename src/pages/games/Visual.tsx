@@ -372,7 +372,7 @@ const Visual: React.FC = () => {
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🧠</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 Test 2 - Visual
+                            🪄 Test 3 - Visual
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
@@ -531,7 +531,7 @@ const Visual: React.FC = () => {
                                         aria-label="Back to home"
                                     >
                                         <Home className="mr-3 h-5 w-5" />
-                                        🏠 Home
+                                        Home
                                     </button>
                                 </Link>
                             </div>
