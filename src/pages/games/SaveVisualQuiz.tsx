@@ -276,8 +276,7 @@ const SaveVisualQuiz: React.FC = () => {
               <button
                   className="bg-gray-700 text-white px-6 py-3 rounded-full shadow-lg hover:bg-gray-800"
               >
-                <Home className="mr-2 h-5 w-5" />
-                Back Home
+                Home
               </button>
             </Link>
           </div>
