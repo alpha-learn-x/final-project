@@ -236,7 +236,7 @@ const Auditory = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 p-6">
             <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-6">
-                <h1 className="text-3xl font-bold mb-4 text-purple-800 text-center">🎧 Auditory Quiz</h1>
+                <h1 className="text-3xl font-bold mb-4 text-purple-800 text-center">🎧Test 4 - Auditory</h1>
 
                 {!isSubmitted ? (
                     <>
@@ -345,7 +345,7 @@ const Auditory = () => {
                             <Home className="inline-block mr-2" size={20} /> Restart
                         </button>
                         <Link to="/" className="block text-center text-indigo-600 underline">
-                            Back to Home
+                        Home
                         </Link>
                     </>
                 )}
