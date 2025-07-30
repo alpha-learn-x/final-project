@@ -157,7 +157,7 @@ const SaveReadWriteQuiz: React.FC = () => {
 
                 <div className="text-center mb-16">
                     <div className="relative">
-                        <div className="text-6xl mb-4 animate-bounce">🧠</div>
+                        <div className="text-6xl mb-4 animate-bounce"></div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
                             🪄 Create Read and Write Quiz
                         </h1>

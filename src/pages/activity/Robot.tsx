@@ -188,7 +188,7 @@ const Robot = () => {
         <div className="text-center mb-6">
           <p className="text-gray-700 mb-4">Put the robot parts in the correct order!</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {["🧠", "👁️", "🔋", "⚙️", "🛞", "🤖"].map((emoji, index) => (
+            {["👁️", "🔋", "⚙️", "🛞", "🤖"].map((emoji, index) => (
               <div
                 key={index}
                 className="p-6 bg-gradient-to-b from-purple-100 to-purple-200 rounded-lg border-2 border-purple-300 text-4xl cursor-pointer hover:scale-105 transition-transform"

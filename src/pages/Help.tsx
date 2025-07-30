@@ -89,7 +89,7 @@ const Help = () => {
         {/* AI Learning Assistant Section */}
         <Card className="mb-12 bg-gradient-to-r from-purple-100 to-blue-100 border-2 border-purple-300">
           <CardHeader>
-            <CardTitle className="text-2xl text-purple-800 text-center">🧠 AI Learning Assistant</CardTitle>
+            <CardTitle className="text-2xl text-purple-800 text-center">AI Learning Assistant</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Chat Interface */}
