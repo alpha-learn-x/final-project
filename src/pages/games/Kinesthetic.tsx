@@ -507,7 +507,7 @@ const Kinesthetic: React.FC = () => {
                                         aria-label="Back to home"
                                     >
                                         <Home className="mr-3 h-5 w-5 inline" />
-                                        🏠 Home
+                                        Home
                                     </button>
                                 </Link>
                             </div>
