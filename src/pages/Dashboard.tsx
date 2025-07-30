@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import Footer from "@/components/Footer";
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import UserAllResults from "./UserAllResults";
 
 interface QuizResult {
     _id: string;
@@ -425,6 +426,13 @@ const Dashboard = () => {
                             </CardContent>
                         </Card>
                     )}
+                    <div>
+                        {!isTeacher && (
+                            <div className="border">
+                                <UserAllResults/>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
             <Footer/>
