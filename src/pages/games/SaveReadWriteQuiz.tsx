@@ -39,17 +39,23 @@ const SaveReadWriteQuiz: React.FC = () => {
         if (!validateForm()) return;
 
         try {
+            // Split the correct answer order and convert to an array
+            const correctOrderArray = correctAnswerOrder
+                .split(",")
+                .map((item) => item.trim())
+                .filter((item) => item);
+
             const payload = {
                 question,
-                answer1Id: 1,
+                answer1Id: "1",
                 answer1,
-                answer2Id: 2,
+                answer2Id: "2",
                 answer2,
-                answer3Id: 3,
+                answer3Id: "3",
                 answer3,
-                answer4Id: 4,
+                answer4Id: "4",
                 answer4,
-                correctAnswerOrder,
+                correctAnswerOrder: correctOrderArray,
             };
 
             const res = await axios.post(
