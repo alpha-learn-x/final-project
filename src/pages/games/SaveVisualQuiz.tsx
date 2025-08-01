@@ -6,16 +6,23 @@ import Header from "@/components/Header.tsx";
 import { Button } from "@/components/ui/button";
 
 const SaveVisualQuiz: React.FC = () => {
+  const [quizName, setQuizName] = useState('VISUAL');
   const [question, setQuestion] = useState('');
   const [answer1, setAnswer1] = useState('');
   const [answer2, setAnswer2] = useState('');
   const [answer3, setAnswer3] = useState('');
   const [answer4, setAnswer4] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [pauseAt, setPauseAt] = useState('');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const validateForm = (): boolean => {
+    if (!quizName.trim()) {
+      setError('Quiz name is required');
+      return false;
+    }
     if (!question.trim()) {
       setError('Question is required');
       return false;
@@ -26,6 +33,15 @@ const SaveVisualQuiz: React.FC = () => {
     }
     if (!correctAnswer.trim()) {
       setError('Correct answer is required');
+      return false;
+    }
+    if (!youtubeUrl.trim()) {
+      setError('YouTube URL is required');
+      return false;
+    }
+    const pauseAtNum = parseFloat(pauseAt);
+    if (!pauseAt || isNaN(pauseAtNum) || pauseAtNum <= 0) {
+      setError('Pause time must be a positive number');
       return false;
     }
     return true;
@@ -40,23 +56,29 @@ const SaveVisualQuiz: React.FC = () => {
 
     try {
       const payload = {
-        question,
-        answer1,
-        answer2,
-        answer3,
-        answer4,
-        correctAnswer,
+        quizName: quizName.trim(),
+        question: question.trim(),
+        answer1: answer1.trim(),
+        answer2: answer2.trim(),
+        answer3: answer3.trim(),
+        answer4: answer4.trim(),
+        correctAnswer: correctAnswer.trim(),
+        youtubeUrl: youtubeUrl.trim(),
+        pauseAt: parseFloat(pauseAt)
       };
 
       const res = await axios.post('http://localhost:5000/api/v1/quizzes/visual/create', payload);
 
       setSaveStatus('Quiz saved successfully!');
+      setQuizName('VISUAL');
       setQuestion('');
       setAnswer1('');
       setAnswer2('');
       setAnswer3('');
       setAnswer4('');
       setCorrectAnswer('');
+      setYoutubeUrl('');
+      setPauseAt('');
     } catch (err: any) {
       setError('Failed to save quiz: ' + (err.response?.data?.error || err.message));
     }
@@ -87,6 +109,17 @@ const SaveVisualQuiz: React.FC = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Quiz Name</label>
+              <input
+                  type="text"
+                  value={quizName}
+                  onChange={(e) => setQuizName(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter quiz name (e.g., VISUAL)"
+              />
+            </div>
+
             <div className="mb-8">
               <label className="block text-lg font-bold text-purple-800 mb-2">Question</label>
               <input
@@ -150,6 +183,30 @@ const SaveVisualQuiz: React.FC = () => {
                   onChange={(e) => setCorrectAnswer(e.target.value)}
                   className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
                   placeholder="Correct Answer"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">YouTube URL</label>
+              <input
+                  type="text"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=abc123xyz89)"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Pause At (seconds)</label>
+              <input
+                  type="number"
+                  value={pauseAt}
+                  onChange={(e) => setPauseAt(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter pause time in seconds"
+                  min="0"
+                  step="0.1"
               />
             </div>
 
