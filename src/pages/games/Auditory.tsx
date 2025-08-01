@@ -4,19 +4,17 @@ import { Play, Pause, Home } from 'lucide-react';
 import axios from 'axios';
 import Header from "@/components/Header.tsx";
 
-interface Question {
-    id: number;
-    text: string;
-    options: string[];
-    correctAnswer: string;
-    audioText: string;
-}
-
-interface Quiz {
+interface AuditoryQuiz {
     _id: string;
-    quizName?: string;
+    quizName: string;
+    question: string;
+    answer1: string;
+    answer2: string;
+    answer3: string;
+    answer4: string;
+    correctAnswer: string;
     audioUrl?: string;
-    questions: Question[];
+    createdAt: string;
 }
 
 interface UserData {
@@ -27,7 +25,7 @@ interface UserData {
 }
 
 interface QuizResult {
-    taskId: number;
+    taskId: string;
     timeTaken: number;
     marks: number;
     userAnswer: string;
@@ -37,7 +35,7 @@ interface QuizResult {
 const Auditory: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
 
-    const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+    const [quizzes, setQuizzes] = useState<AuditoryQuiz[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -58,55 +56,28 @@ const Auditory: React.FC = () => {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [showCurrentResult, setShowCurrentResult] = useState(false);
     const [results, setResults] = useState<QuizResult[]>([]);
-
-    // Flatten questions and track quiz boundaries
-    const [allQuestions, setAllQuestions] = useState<{ quizId: string; question: Question }[]>([]);
-    const [quizIndexMap, setQuizIndexMap] = useState<{ quizId: string; startIndex: number; endIndex: number }[]>([]);
+    const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
 
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/questions');
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/get-all');
                 const quizzesData = response.data;
 
                 if (!quizzesData || !Array.isArray(quizzesData)) {
                     throw new Error("Invalid data format: Expected an array of quizzes");
                 }
 
-                // Validate each quiz
-                const validQuizzes = quizzesData.filter((quiz: any) => quiz && Array.isArray(quiz.questions));
-                if (validQuizzes.length === 0) {
-                    throw new Error("No valid quizzes with questions found");
+                if (quizzesData.length === 0) {
+                    throw new Error("No quiz questions found");
                 }
 
-                setQuizzes(validQuizzes);
-
-                // Flatten questions and create index map
-                let questionIndex = 0;
-                const flattenedQuestions: { quizId: string; question: Question }[] = [];
-                const indexMap: { quizId: string; startIndex: number; endIndex: number }[] = [];
-
-                validQuizzes.forEach((quiz: Quiz) => {
-                    const quizQuestions = quiz.questions || [];
-                    flattenedQuestions.push(...quizQuestions.map((q: Question) => ({
-                        quizId: quiz._id,
-                        question: { ...q, id: Number(q.id) }
-                    })));
-                    indexMap.push({
-                        quizId: quiz._id,
-                        startIndex: questionIndex,
-                        endIndex: questionIndex + quizQuestions.length - 1
-                    });
-                    questionIndex += quizQuestions.length;
-                });
-
-                setAllQuestions(flattenedQuestions);
-                setQuizIndexMap(indexMap);
-                setAnswers(Array(flattenedQuestions.length).fill(''));
+                setQuizzes(quizzesData);
+                setAnswers(Array(quizzesData.length).fill(''));
                 setIsLoading(false);
             } catch (err) {
-                console.error("Error fetching or processing quiz data:", err);
-                setLoadError('Failed to load quiz tasks. Please try again later.');
+                console.error("Error fetching quiz data:", err);
+                setLoadError('Failed to load quiz questions. Please try again later.');
                 setIsLoading(false);
             }
         };
@@ -151,7 +122,7 @@ const Auditory: React.FC = () => {
     };
 
     const playAudio = () => {
-        if (audioRef.current) {
+        if (audioRef.current && currentQuiz?.audioUrl) {
             audioRef.current.currentTime = 0;
             audioRef.current.play();
             setIsPlaying(true);
@@ -172,43 +143,66 @@ const Auditory: React.FC = () => {
         setSaveStatus(null);
     };
 
-    const calculateMarks = (answer: string, correctAnswer: string) => {
-        return answer === correctAnswer ? 1 : 0;
+    const checkAnswerWithBackend = async (quizId: string, selectedAnswer: string): Promise<boolean> => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/auditory/check-answer', {
+                quizId,
+                selectedAnswer
+            });
+            return response.data.correct;
+        } catch (error) {
+            console.error('Error checking answer with backend:', error);
+            // Fallback to local check
+            const currentQuestion = quizzes[currentQuestionIndex];
+            return currentQuestion.correctAnswer === selectedAnswer;
+        }
     };
 
-    const handleCheckAnswer = () => {
-        if (!answers[currentQuestionIndex] || !isTimerRunning) return;
+    const handleCheckAnswer = async () => {
+        if (!answers[currentQuestionIndex] || !isTimerRunning || isCheckingAnswer) return;
 
+        setIsCheckingAnswer(true);
         pauseAudio();
-        const currentQuestion = allQuestions[currentQuestionIndex];
+
+        const currentQuestion = quizzes[currentQuestionIndex];
         const userAnswer = answers[currentQuestionIndex];
-        const marks = calculateMarks(userAnswer, currentQuestion.question.correctAnswer);
 
-        const questionResult: QuizResult = {
-            taskId: Number(currentQuestion.question.id),
-            timeTaken: Number(time),
-            marks: Number(marks),
-            userAnswer,
-            correctAnswer: currentQuestion.question.correctAnswer
-        };
+        try {
+            // Check answer with backend
+            const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
+            const marks = isCorrect ? 1 : 0;
 
-        setResults(prev => {
-            const existingResultIndex = prev.findIndex(r => r.taskId === questionResult.taskId);
-            if (existingResultIndex !== -1) {
-                const updatedResults = [...prev];
-                updatedResults[existingResultIndex] = questionResult;
-                return updatedResults;
-            }
-            return [...prev, questionResult];
-        });
+            const questionResult: QuizResult = {
+                taskId: currentQuestion._id,
+                timeTaken: Number(time),
+                marks: Number(marks),
+                userAnswer,
+                correctAnswer: currentQuestion.correctAnswer
+            };
 
-        setShowCurrentResult(true);
+            setResults(prev => {
+                const existingResultIndex = prev.findIndex(r => r.taskId === questionResult.taskId);
+                if (existingResultIndex !== -1) {
+                    const updatedResults = [...prev];
+                    updatedResults[existingResultIndex] = questionResult;
+                    return updatedResults;
+                }
+                return [...prev, questionResult];
+            });
+
+            setShowCurrentResult(true);
+        } catch (error) {
+            console.error('Error checking answer:', error);
+            setSaveStatus('Error checking answer. Please try again.');
+        } finally {
+            setIsCheckingAnswer(false);
+        }
     };
 
     const handleNextQuestion = async () => {
         if (!showCurrentResult) return;
 
-        if (currentQuestionIndex < allQuestions.length - 1) {
+        if (currentQuestionIndex < quizzes.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
             setTime(0);
             setShowCurrentResult(false);
@@ -218,25 +212,29 @@ const Auditory: React.FC = () => {
             setIsSubmitted(true);
 
             // Ensure final result is included before saving
-            const currentQuestion = allQuestions[currentQuestionIndex];
+            const currentQuestion = quizzes[currentQuestionIndex];
             const userAnswer = answers[currentQuestionIndex];
-            const marks = calculateMarks(userAnswer, currentQuestion.question.correctAnswer);
 
             const finalResults = [...results];
-            const existingResultIndex = finalResults.findIndex(r => r.taskId === currentQuestion.question.id);
-
-            const finalResult: QuizResult = {
-                taskId: Number(currentQuestion.question.id),
-                timeTaken: Number(time),
-                marks: Number(marks),
-                userAnswer,
-                correctAnswer: currentQuestion.question.correctAnswer
-            };
+            const existingResultIndex = finalResults.findIndex(r => r.taskId === currentQuestion._id);
 
             if (existingResultIndex === -1) {
-                finalResults.push(finalResult);
-            } else {
-                finalResults[existingResultIndex] = finalResult;
+                try {
+                    const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
+                    const marks = isCorrect ? 1 : 0;
+
+                    const finalResult: QuizResult = {
+                        taskId: currentQuestion._id,
+                        timeTaken: Number(time),
+                        marks: Number(marks),
+                        userAnswer,
+                        correctAnswer: currentQuestion.correctAnswer
+                    };
+
+                    finalResults.push(finalResult);
+                } catch (error) {
+                    console.error('Error checking final answer:', error);
+                }
             }
 
             await saveQuizResults(finalResults, totalTime);
@@ -250,7 +248,7 @@ const Auditory: React.FC = () => {
         }
 
         const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
-        const totelquizes = allQuestions.length;
+        const totalQuizzes = quizzes.length;
 
         const payload = {
             quizName: "AUDITORY",
@@ -259,20 +257,13 @@ const Auditory: React.FC = () => {
             username,
             email,
             totalMarks,
-            participatedQuestions: totelquizes,
+            participatedQuestions: totalQuizzes,
             totalTime: finalTotalTime,
-            date: new Date().toISOString(),
-            taskResults: finalResults.map(result => ({
-                taskId: result.taskId,
-                timeTaken: result.timeTaken,
-                marks: result.marks,
-                userAnswer: result.userAnswer,
-                correctAnswer: result.correctAnswer
-            }))
+            date: new Date().toISOString()
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', payload, {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results/create', payload, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -291,12 +282,13 @@ const Auditory: React.FC = () => {
         setTime(0);
         setTotalTime(0);
         setStartTime(null);
-        setAnswers(Array(allQuestions.length).fill(''));
+        setAnswers(Array(quizzes.length).fill(''));
         setIsTimerRunning(false);
         setIsSubmitted(false);
         setShowCurrentResult(false);
         setResults([]);
         setSaveStatus(null);
+        setIsCheckingAnswer(false);
         pauseAudio();
     };
 
@@ -307,18 +299,23 @@ const Auditory: React.FC = () => {
     };
 
     const getScoreColor = (score: number) => {
-        const totalPossibleMarks = allQuestions.length;
+        const totalPossibleMarks = quizzes.length;
         const percentage = (score / totalPossibleMarks) * 100;
         if (percentage >= 80) return "text-green-600";
         if (percentage >= 60) return "text-yellow-600";
         return "text-red-500";
     };
 
-    // Find the quiz for the current question
-    const currentQuiz = quizzes.find(quiz => {
-        const map = quizIndexMap.find(m => m.quizId === quiz._id);
-        return map && currentQuestionIndex >= map.startIndex && currentQuestionIndex <= map.endIndex;
-    });
+    // Get current quiz question
+    const currentQuiz = quizzes[currentQuestionIndex];
+
+    // Create options array from answer fields
+    const currentOptions = currentQuiz ? [
+        currentQuiz.answer1,
+        currentQuiz.answer2,
+        currentQuiz.answer3,
+        currentQuiz.answer4
+    ].filter(Boolean) : []; // Filter out empty answers
 
     if (isLoading) {
         return (
@@ -347,7 +344,7 @@ const Auditory: React.FC = () => {
         );
     }
 
-    if (!allQuestions || allQuestions.length === 0) {
+    if (!quizzes || quizzes.length === 0) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
                 <div className="text-center bg-white/90 rounded-3xl p-8 border-4 border-yellow-400">
@@ -363,8 +360,7 @@ const Auditory: React.FC = () => {
         );
     }
 
-    const currentQuestion = allQuestions[currentQuestionIndex];
-    const currentResult = results.find(r => r.taskId === currentQuestion.question.id);
+    const currentResult = results.find(r => r.taskId === currentQuiz?._id);
     const totalMarks = results.reduce((acc, r) => acc + r.marks, 0);
 
     return (
@@ -397,13 +393,13 @@ const Auditory: React.FC = () => {
                             🌟 Listen carefully and answer the questions! 🌟
                         </p>
                         <p className="text-md text-gray-600">
-                            Question {currentQuestionIndex + 1} of {allQuestions.length}
+                            Question {currentQuestionIndex + 1} of {quizzes.length}
                             {isSubmitted && " - Quiz Completed!"}
                         </p>
                         {!isSubmitted && (
                             <p className="text-lg font-bold mt-2">
                                 Current Score: <span className={getScoreColor(totalMarks)}>
-                                    {totalMarks} / {allQuestions.length}
+                                    {totalMarks} / {quizzes.length}
                                 </span>
                             </p>
                         )}
@@ -417,25 +413,27 @@ const Auditory: React.FC = () => {
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-lg font-bold text-purple-800">Progress</span>
                                     <span className="text-lg font-bold text-purple-800">
-                                        {currentQuestionIndex + 1} / {allQuestions.length}
+                                        {currentQuestionIndex + 1} / {quizzes.length}
                                     </span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-4">
                                     <div
                                         className="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full transition-all duration-300"
-                                        style={{ width: `${((currentQuestionIndex + 1) / allQuestions.length) * 100}%` }}
+                                        style={{ width: `${((currentQuestionIndex + 1) / quizzes.length) * 100}%` }}
                                     ></div>
                                 </div>
                             </div>
 
                             <h2 className="text-3xl font-semibold text-center mb-2 text-purple-800">
-                                Auditory Question {currentQuestion?.question.id}
+                                Auditory Question {currentQuestionIndex + 1}
                             </h2>
                             <h3 className="text-xl font-medium text-center mb-6 text-blue-700">
-                                {currentQuestion?.question.text}
+                                {currentQuiz?.question}
                             </h3>
 
-                            <audio ref={audioRef} src={currentQuiz?.audioUrl || ''} />
+                            {currentQuiz?.audioUrl && (
+                                <audio ref={audioRef} src={currentQuiz.audioUrl} />
+                            )}
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
                                 <span className="text-2xl mr-6 font-bold text-blue-800">
@@ -472,7 +470,7 @@ const Auditory: React.FC = () => {
                             </div>
 
                             <div className="space-y-4 mb-6">
-                                {currentQuestion?.question.options.map((option: string, idx: number) => (
+                                {currentOptions.map((option: string, idx: number) => (
                                     <button
                                         key={idx}
                                         onClick={() => handleAnswerSelect(option)}
@@ -505,7 +503,7 @@ const Auditory: React.FC = () => {
                                                 ? 'bg-green-200'
                                                 : 'bg-red-200'
                                         }`}>
-                                            <p className="font-semibold">{currentQuestion.question.text}</p>
+                                            <p className="font-semibold">{currentQuiz?.question}</p>
                                             <p className="mt-2">
                                                 <strong>Your Answer:</strong> {currentResult.userAnswer || 'No answer'}
                                             </p>
@@ -523,15 +521,15 @@ const Auditory: React.FC = () => {
                                         onClick={handleNextQuestion}
                                         className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
                                     >
-                                        {currentQuestionIndex < allQuestions.length - 1 ? "Next Question ➡️" : "Finish Quiz 🎯"}
+                                        {currentQuestionIndex < quizzes.length - 1 ? "Next Question ➡️" : "Finish Quiz 🎯"}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={handleCheckAnswer}
-                                        disabled={!answers[currentQuestionIndex] || !isTimerRunning}
+                                        disabled={!answers[currentQuestionIndex] || !isTimerRunning || isCheckingAnswer}
                                         className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
                                     >
-                                        Check Answer ➡️
+                                        {isCheckingAnswer ? "Checking... ⏳" : "Check Answer ➡️"}
                                     </button>
                                 )}
                             </div>
@@ -540,7 +538,7 @@ const Auditory: React.FC = () => {
                                 <p className="text-lg text-yellow-800 font-semibold">
                                     💡 Listen to the audio and select your answer to check your response
                                 </p>
-                                {currentQuestionIndex === allQuestions.length - 1 && !showCurrentResult && (
+                                {currentQuestionIndex === quizzes.length - 1 && !showCurrentResult && (
                                     <p className="text-lg text-green-800 font-bold mt-2">
                                         🎯 This is the final question. Check your answer before finishing!
                                     </p>
@@ -557,7 +555,7 @@ const Auditory: React.FC = () => {
                                     Total Time Taken: {formatTime(totalTime)}
                                 </p>
                                 <p className={`text-2xl font-bold ${getScoreColor(totalMarks)}`}>
-                                    Total Marks: {totalMarks} / {allQuestions.length}
+                                    Total Marks: {totalMarks} / {quizzes.length}
                                 </p>
                             </div>
                             <div className="mb-8 bg-white p-6 rounded-xl border-2 border-purple-300">
