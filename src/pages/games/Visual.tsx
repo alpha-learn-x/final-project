@@ -273,7 +273,7 @@ const Visual: React.FC = () => {
         }
     };
 
-    const handleNext = async (): void => {
+    const handleNext = async (): Promise<void> => {
         if (!showCurrentResult || !currentQuiz) return;
 
         setQuestionStartTime(Date.now());
