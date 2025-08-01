@@ -362,18 +362,20 @@ const Kinesthetic: React.FC = () => {
                                 Drag and Drop to correct Position
                             </h3>
 
-                            <div className="border border-gray-400 flex justify-center gap-6 p-8 mb-6 bg-gray-50 rounded-xl overflow-x-auto">
+                            <div className="border border-gray-400 flex justify-center gap-6 py-6 mb-6 bg-gray-50 rounded-xl overflow-x-auto">
                                 {task.images.map((img) => (
                                     <div
                                         key={img.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, img.id)}
-                                        className="w-52 h-52 flex items-center justify-center cursor-move hover:bg-blue-50 transition-colors border-2 border-gray-300 rounded-lg shadow-md hover:shadow-lg flex-shrink-0"
+                                        className="w-52 h-52 flex items-center justify-center cursor-move border-2 border-gray-300 rounded-lg shadow-md flex-shrink-0
+                 transform transition-transform duration-300 hover:scale-110 hover:bg-blue-50 hover:shadow-lg"
                                     >
                                         <img src={img.src} alt={img.id} className="w-52 h-52 object-contain" />
                                     </div>
                                 ))}
                             </div>
+
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
                                 <span className="text-2xl mr-6 font-bold text-blue-800">
