@@ -229,12 +229,15 @@ const ReadWrite: React.FC = () => {
         setIsTimerRunning(false);
         setShowResults(true);
 
+        const totelquizes = questions.length;
+
         const quizData = {
             quizName,
             user,
             userId,
             username,
             email,
+            participatedQuestions: totelquizes,
             totalMarks: total,
             totalTime: totalTime,
             date: new Date().toISOString()

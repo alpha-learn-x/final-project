@@ -29,9 +29,7 @@ import GameContext from "@/pages/games/GameContext.tsx";
 import Students from "@/pages/Students.tsx";
 import SaveVisualQuiz from "@/pages/games/SaveVisualQuiz.tsx";
 import SaveAuditoryQuiz from "@/pages/games/SaveAuditoryQuiz.tsx";
-import SaveDragAndDropQuiz from "@/pages/games/SaveDragAndDrop.tsx";
 import Kinesthetic from "@/pages/games/Kinesthetic.tsx";
-import SaveReadWrite from "@/pages/games/SaveReadWriteQuiz.tsx";
 import SaveReadWriteQuiz from "@/pages/games/SaveReadWriteQuiz.tsx";
 import SaveKinestheticQuiz from "@/pages/games/SaveKinestheticQuiz.tsx";
 
@@ -173,11 +171,6 @@ const App = () => (
             <Route path="/save-auditory-quiz" element={
               <ProtectedRoute>
                 <SaveAuditoryQuiz />
-              </ProtectedRoute>
-            } />
-            <Route path="/save-drag-and-drop-quiz" element={
-              <ProtectedRoute>
-                <SaveDragAndDropQuiz />
               </ProtectedRoute>
             } />
             <Route path="/save-read-write-quiz" element={

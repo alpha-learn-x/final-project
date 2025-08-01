@@ -261,6 +261,8 @@ const Visual: React.FC = () => {
         console.log('Total marks:', total);
         console.log('Total time:', totalTime);
 
+        const totelquizes = tasks.length;
+
         // Prepare data for API
         const quizData = {
             quizName,
@@ -268,6 +270,7 @@ const Visual: React.FC = () => {
             userId,
             username,
             email,
+            participatedQuestions: totelquizes,
             totalMarks: total,
             totalTime: totalTime,
             date: new Date().toISOString()

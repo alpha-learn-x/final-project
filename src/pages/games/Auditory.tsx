@@ -250,6 +250,7 @@ const Auditory: React.FC = () => {
         }
 
         const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
+        const totelquizes = allQuestions.length;
 
         const payload = {
             quizName: "AUDITORY",
@@ -258,6 +259,7 @@ const Auditory: React.FC = () => {
             username,
             email,
             totalMarks,
+            participatedQuestions: totelquizes,
             totalTime: finalTotalTime,
             date: new Date().toISOString(),
             taskResults: finalResults.map(result => ({

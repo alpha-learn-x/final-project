@@ -203,7 +203,7 @@ const Kinesthetic: React.FC = () => {
         }
 
         const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
-
+        const totelquizes = tasks.length;
         try {
             const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
                 quizName: "KINESTHETIC",
@@ -212,6 +212,7 @@ const Kinesthetic: React.FC = () => {
                 username,
                 email,
                 totalMarks,
+                participatedQuestions: totelquizes,
                 totalTime: finalTotalTime,
                 date: new Date().toISOString(),
                 taskResults: finalResults
