@@ -4,7 +4,6 @@ import { Home } from 'lucide-react';
 import axios from 'axios';
 import Header from "@/components/Header.tsx";
 
-// Define types for the question structure
 interface Question {
     _id: string;
     quizName: string;
