@@ -32,6 +32,14 @@ import SaveAuditoryQuiz from "@/pages/games/SaveAuditoryQuiz.tsx";
 import Kinesthetic from "@/pages/games/Kinesthetic.tsx";
 import SaveReadWriteQuiz from "@/pages/games/SaveReadWriteQuiz.tsx";
 import SaveKinestheticQuiz from "@/pages/games/SaveKinestheticQuiz.tsx";
+import Rec_Auditory from "@/pages/recommendations/Rec_Auditory.tsx";
+import Rec_Visual from "@/pages/recommendations/Rec_Visual.tsx";
+import Rec_ReadWrite from "@/pages/recommendations/Rec_ReadWrite.tsx";
+import Rec_Kinesthetic from "@/pages/recommendations/Rec_Kinesthetic.tsx";
+import Rec_SaveAuditoryQuiz from "@/pages/recommendations/Rec_SaveAuditoryQuiz.tsx";
+import Rec_SaveReadWriteQuiz from "@/pages/recommendations/Rec_SaveReadWriteQuiz.tsx";
+import Rec_SaveVisualQuiz from "@/pages/recommendations/Rec_SaveVisualQuiz.tsx";
+import Rec_SaveKinestheticQuiz from "@/pages/recommendations/Rec_SaveKinestheticQuiz.tsx";
 
 
 const queryClient = new QueryClient();
@@ -182,6 +190,54 @@ const App = () => (
             <Route path="/save-kinesthetic-quiz" element={
               <ProtectedRoute>
                 <SaveKinestheticQuiz />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-auditory" element={
+              <ProtectedRoute>
+                <Rec_Auditory />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-visual" element={
+              <ProtectedRoute>
+                <Rec_Visual />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-read-and-write" element={
+              <ProtectedRoute>
+                <Rec_ReadWrite />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-kinesthetic" element={
+              <ProtectedRoute>
+                <Rec_Kinesthetic />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-save-auditory" element={
+              <ProtectedRoute>
+                <Rec_SaveAuditoryQuiz />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-save-visual" element={
+              <ProtectedRoute>
+                <Rec_SaveVisualQuiz />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-save-read-and-write" element={
+              <ProtectedRoute>
+                <Rec_SaveReadWriteQuiz />
+              </ProtectedRoute>
+            } />
+
+            <Route path="rec-save-kinesthetic" element={
+              <ProtectedRoute>
+                <Rec_SaveKinestheticQuiz />
               </ProtectedRoute>
             } />
 
