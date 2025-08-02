@@ -2,11 +2,40 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'react-router-dom';
 import { Play, Pause, Home } from 'lucide-react';
 import axios from 'axios';
+import Header from "@/components/Header.tsx";
 
-const Auditory = () => {
+interface AuditoryQuiz {
+    _id: string;
+    quizName: string;
+    question: string;
+    answer1: string;
+    answer2: string;
+    answer3: string;
+    answer4: string;
+    correctAnswer: string;
+    audioUrl?: string;
+    createdAt: string;
+}
+
+interface UserData {
+    id?: string;
+    userId?: string;
+    userName?: string;
+    email?: string;
+}
+
+interface QuizResult {
+    taskId: string;
+    timeTaken: number;
+    marks: number;
+    userAnswer: string;
+    correctAnswer: string;
+}
+
+const Auditory: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
 
-    const [quizzes, setQuizzes] = useState<{ _id: string; quizName?: string; audioUrl?: string; questions: any[] }[]>([]);
+    const [quizzes, setQuizzes] = useState<AuditoryQuiz[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -25,76 +54,54 @@ const Auditory = () => {
     const [totalTime, setTotalTime] = useState(0);
     const [saveStatus, setSaveStatus] = useState<string | null>(null);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [answerFeedback, setAnswerFeedback] = useState<boolean[]>([]);
-
-    // Flatten questions and track quiz boundaries
-    const [allQuestions, setAllQuestions] = useState<{ quizId: string; question: any }[]>([]);
-    const [quizIndexMap, setQuizIndexMap] = useState<{ quizId: string; startIndex: number; endIndex: number }[]>([]);
+    const [showCurrentResult, setShowCurrentResult] = useState(false);
+    const [results, setResults] = useState<QuizResult[]>([]);
+    const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
 
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/questions');
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/get-all');
                 const quizzesData = response.data;
 
                 if (!quizzesData || !Array.isArray(quizzesData)) {
                     throw new Error("Invalid data format: Expected an array of quizzes");
                 }
 
-                // Validate each quiz
-                const validQuizzes = quizzesData.filter((quiz: any) => quiz && Array.isArray(quiz.questions));
-                if (validQuizzes.length === 0) {
-                    throw new Error("No valid quizzes with questions found");
+                if (quizzesData.length === 0) {
+                    throw new Error("No quiz questions found");
                 }
 
-                setQuizzes(validQuizzes);
-
-                // Flatten questions and create index map
-                let questionIndex = 0;
-                const flattenedQuestions: { quizId: string; question: any }[] = [];
-                const indexMap: { quizId: string; startIndex: number; endIndex: number }[] = [];
-
-                validQuizzes.forEach((quiz: any) => {
-                    const quizQuestions = quiz.questions || [];
-                    flattenedQuestions.push(...quizQuestions.map((q: any) => ({ quizId: quiz._id, question: q })));
-                    indexMap.push({
-                        quizId: quiz._id,
-                        startIndex: questionIndex,
-                        endIndex: questionIndex + quizQuestions.length - 1
-                    });
-                    questionIndex += quizQuestions.length;
-                });
-
-                setAllQuestions(flattenedQuestions);
-                setQuizIndexMap(indexMap);
-                setAnswers(Array(flattenedQuestions.length).fill(''));
+                setQuizzes(quizzesData);
+                setAnswers(Array(quizzesData.length).fill(''));
                 setIsLoading(false);
             } catch (err) {
-                console.error("Error fetching or processing quiz data:", err);
-                setLoadError('Failed to load quiz tasks. Please try again later.');
+                console.error("Error fetching quiz data:", err);
+                setLoadError('Failed to load quiz questions. Please try again later.');
                 setIsLoading(false);
             }
         };
         fetchQuizzes();
-    }, []);
 
-    useEffect(() => {
+        // Load user data
         const userDataStr = localStorage.getItem('currentUser');
         if (!userDataStr) {
             setSaveStatus('Please log in to start the quiz.');
             return;
         }
         try {
-            const userData = JSON.parse(userDataStr);
+            const userData: UserData = JSON.parse(userDataStr);
             setUser(userData.id || '');
             setUserId(userData.userId || '');
             setUsername(userData.userName || '');
             setEmail(userData.email || '');
         } catch (err) {
+            console.error("Failed to parse user data from localStorage", err);
             setSaveStatus('Error loading user data. Please log in again.');
         }
     }, []);
 
+    // Timer effect
     useEffect(() => {
         let timer: NodeJS.Timeout;
         if (isTimerRunning) {
@@ -115,7 +122,7 @@ const Auditory = () => {
     };
 
     const playAudio = () => {
-        if (audioRef.current) {
+        if (audioRef.current && currentQuiz?.audioUrl) {
             audioRef.current.currentTime = 0;
             audioRef.current.play();
             setIsPlaying(true);
@@ -136,67 +143,137 @@ const Auditory = () => {
         setSaveStatus(null);
     };
 
-    const handleNext = () => {
-        if (currentQuestionIndex < allQuestions.length - 1) {
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
+    const checkAnswerWithBackend = async (quizId: string, selectedAnswer: string): Promise<boolean> => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/auditory/check-answer', {
+                quizId,
+                selectedAnswer
+            });
+            return response.data.correct;
+        } catch (error) {
+            console.error('Error checking answer with backend:', error);
+            // Fallback to local check
+            const currentQuestion = quizzes[currentQuestionIndex];
+            return currentQuestion.correctAnswer === selectedAnswer;
         }
     };
 
-    const handlePrev = () => {
-        if (currentQuestionIndex > 0) {
-            setCurrentQuestionIndex(currentQuestionIndex - 1);
-        }
-    };
+    const handleCheckAnswer = async () => {
+        if (!answers[currentQuestionIndex] || !isTimerRunning || isCheckingAnswer) return;
 
-    const handleSubmit = () => {
+        setIsCheckingAnswer(true);
         pauseAudio();
+
+        const currentQuestion = quizzes[currentQuestionIndex];
+        const userAnswer = answers[currentQuestionIndex];
+
+        try {
+            // Check answer with backend
+            const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
+            const marks = isCorrect ? 1 : 0;
+
+            const questionResult: QuizResult = {
+                taskId: currentQuestion._id,
+                timeTaken: Number(time),
+                marks: Number(marks),
+                userAnswer,
+                correctAnswer: currentQuestion.correctAnswer
+            };
+
+            setResults(prev => {
+                const existingResultIndex = prev.findIndex(r => r.taskId === questionResult.taskId);
+                if (existingResultIndex !== -1) {
+                    const updatedResults = [...prev];
+                    updatedResults[existingResultIndex] = questionResult;
+                    return updatedResults;
+                }
+                return [...prev, questionResult];
+            });
+
+            setShowCurrentResult(true);
+        } catch (error) {
+            console.error('Error checking answer:', error);
+            setSaveStatus('Error checking answer. Please try again.');
+        } finally {
+            setIsCheckingAnswer(false);
+        }
+    };
+
+    const handleNextQuestion = async () => {
+        if (!showCurrentResult) return;
+
+        if (currentQuestionIndex < quizzes.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setTime(0);
+            setShowCurrentResult(false);
+            playAudio();
+        } else {
+            setIsTimerRunning(false);
+            setIsSubmitted(true);
+
+            // Ensure final result is included before saving
+            const currentQuestion = quizzes[currentQuestionIndex];
+            const userAnswer = answers[currentQuestionIndex];
+
+            const finalResults = [...results];
+            const existingResultIndex = finalResults.findIndex(r => r.taskId === currentQuestion._id);
+
+            if (existingResultIndex === -1) {
+                try {
+                    const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
+                    const marks = isCorrect ? 1 : 0;
+
+                    const finalResult: QuizResult = {
+                        taskId: currentQuestion._id,
+                        timeTaken: Number(time),
+                        marks: Number(marks),
+                        userAnswer,
+                        correctAnswer: currentQuestion.correctAnswer
+                    };
+
+                    finalResults.push(finalResult);
+                } catch (error) {
+                    console.error('Error checking final answer:', error);
+                }
+            }
+
+            await saveQuizResults(finalResults, totalTime);
+        }
+    };
+
+    const saveQuizResults = async (finalResults: QuizResult[], finalTotalTime: number) => {
         if (!user || !userId || !username || !email) {
-            setSaveStatus('Please log in to submit quiz results.');
+            setSaveStatus('Error: Please log in to submit quiz results.');
             return;
         }
 
-        const marks = allQuestions.map((q, idx) =>
-            answers[idx] === q.question.correctAnswer ? 1 : 0
-        );
+        const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
+        const totalQuizzes = quizzes.length;
 
-        const feedback = allQuestions.map((q, idx) =>
-            answers[idx] === q.question.correctAnswer
-        );
+        const payload = {
+            quizName: "AUDITORY",
+            user,
+            userId,
+            username,
+            email,
+            totalMarks,
+            participatedQuestions: totalQuizzes,
+            totalTime: finalTotalTime,
+            date: new Date().toISOString()
+        };
 
-        setAnswerFeedback(feedback);
-
-        const totalMarks = marks.reduce((sum, mark) => sum + mark, 0);
-        if (startTime) {
-            setTotalTime(Math.floor((new Date().getTime() - startTime) / 1000));
-        }
-
-        setIsSubmitted(true);
-        saveQuizResults(totalMarks, totalTime);
-    };
-
-    const saveQuizResults = async (totalMarks: number, finalTotalTime: number) => {
         try {
-            // Save results for each quiz
-            for (const quiz of quizzes) {
-                const quizMarks = allQuestions
-                    .filter(q => q.quizId === quiz._id)
-                    .map((q, idx) => answers[idx] === q.question.correctAnswer ? 1 : 0)
-                    .reduce((sum, mark) => sum + mark, 0);
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
 
-                await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', {
-                    quizName: quiz.quizName || "AUDITORY",
-                    user,
-                    userId,
-                    username,
-                    email,
-                    totalMarks: quizMarks,
-                    date: new Date().toISOString(),
-                    time: finalTotalTime
-                });
-            }
-            setSaveStatus('Quiz results saved successfully!');
-        } catch (error) {
-            setSaveStatus('Error saving quiz results. Please try again.');
+            setSaveStatus('✅ Quiz results saved successfully!');
+            console.log('Quiz results saved:', response.data);
+        } catch (error: any) {
+            setSaveStatus('❌ Error saving quiz results. Please try again.');
+            console.error('Error saving quiz results:', error.response?.data || error.message);
         }
     };
 
@@ -205,11 +282,13 @@ const Auditory = () => {
         setTime(0);
         setTotalTime(0);
         setStartTime(null);
-        setAnswers(Array(allQuestions.length).fill(''));
+        setAnswers(Array(quizzes.length).fill(''));
         setIsTimerRunning(false);
         setIsSubmitted(false);
-        setAnswerFeedback([]);
+        setShowCurrentResult(false);
+        setResults([]);
         setSaveStatus(null);
+        setIsCheckingAnswer(false);
         pauseAudio();
     };
 
@@ -219,136 +298,302 @@ const Auditory = () => {
         return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     };
 
-    // Find the quiz for the current question
-    const currentQuiz = quizzes.find(quiz => {
-        const map = quizIndexMap.find(m => m.quizId === quiz._id);
-        return map && currentQuestionIndex >= map.startIndex && currentQuestionIndex <= map.endIndex;
-    });
+    const getScoreColor = (score: number) => {
+        const totalPossibleMarks = quizzes.length;
+        const percentage = (score / totalPossibleMarks) * 100;
+        if (percentage >= 80) return "text-green-600";
+        if (percentage >= 60) return "text-yellow-600";
+        return "text-red-500";
+    };
+
+    // Get current quiz question
+    const currentQuiz = quizzes[currentQuestionIndex];
+
+    // Create options array from answer fields
+    const currentOptions = currentQuiz ? [
+        currentQuiz.answer1,
+        currentQuiz.answer2,
+        currentQuiz.answer3,
+        currentQuiz.answer4
+    ].filter(Boolean) : []; // Filter out empty answers
 
     if (isLoading) {
-        return <div className="text-center mt-10 text-lg text-blue-700">Loading quiz...</div>;
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-6xl mb-4 animate-bounce">🎧</div>
+                    <p className="text-3xl text-white font-bold">Loading quiz...</p>
+                </div>
+            </div>
+        );
     }
 
     if (loadError) {
-        return <div className="text-center mt-10 text-lg text-red-600">{loadError}</div>;
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <div className="text-center bg-white/90 rounded-3xl p-8 border-4 border-red-400">
+                    <div className="text-6xl mb-4">❌</div>
+                    <p className="text-2xl text-red-600 font-bold mb-4">{loadError}</p>
+                    <Link to="/">
+                        <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full">
+                            Back to Home
+                        </button>
+                    </Link>
+                </div>
+            </div>
+        );
     }
 
+    if (!quizzes || quizzes.length === 0) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
+                <div className="text-center bg-white/90 rounded-3xl p-8 border-4 border-yellow-400">
+                    <div className="text-6xl mb-4">📝</div>
+                    <p className="text-2xl text-purple-800 font-bold mb-4">No questions available for this quiz.</p>
+                    <Link to="/">
+                        <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full">
+                            Back to Home
+                        </button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    const currentResult = results.find(r => r.taskId === currentQuiz?._id);
+    const totalMarks = results.reduce((acc, r) => acc + r.marks, 0);
+
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 p-6">
-            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-6">
-                <h1 className="text-3xl font-bold mb-4 text-purple-800 text-center">🎧Test 4 - Auditory</h1>
+        <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
+            <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
+            <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
+            <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
-                {!isSubmitted ? (
-                    <>
-                        <div className="text-xl font-semibold text-blue-800 text-center mb-2">
-                            Question {currentQuestionIndex + 1} of {allQuestions.length}
-                        </div>
-                        <div className="text-lg mb-4 text-center">
-                            {allQuestions[currentQuestionIndex]?.question.text}
-                        </div>
+            <Header />
 
-                        <audio ref={audioRef} src={currentQuiz?.audioUrl || ''} />
+            <div className="container mx-auto px-4 py-12">
+                {saveStatus && (
+                    <div className={`mb-4 p-4 rounded-lg ${saveStatus.includes('Error') || saveStatus.includes('❌') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                        {saveStatus}
+                    </div>
+                )}
 
-                        <div className="flex justify-center gap-4 mb-4">
-                            <button
-                                onClick={playAudio}
-                                className="bg-blue-500 text-white px-4 py-2 rounded-full"
-                                disabled={isPlaying || !currentQuiz?.audioUrl}
-                            >
-                                <Play className="inline-block mr-2" size={20} /> Play
-                            </button>
-                            <button
-                                onClick={pauseAudio}
-                                className="bg-red-500 text-white px-4 py-2 rounded-full"
-                                disabled={!isPlaying}
-                            >
-                                <Pause className="inline-block mr-2" size={20} /> Pause
-                            </button>
-                            <button
-                                onClick={handleStartTimer}
-                                className="bg-green-500 text-white px-4 py-2 rounded-full"
-                                disabled={isTimerRunning}
-                            >
-                                Start Quiz
-                            </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 mb-6">
-                            {allQuestions[currentQuestionIndex]?.question.options.map((option: string, idx: number) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleAnswerSelect(option[0])}
-                                    className={`w-full px-4 py-3 rounded-xl text-left border ${
-                                        answers[currentQuestionIndex] === option[0]
-                                            ? 'bg-purple-500 text-white border-purple-600'
-                                            : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
-                                    }`}
-                                    disabled={!isTimerRunning}
-                                >
-                                    {option}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="flex justify-between mb-4">
-                            <button
-                                onClick={handlePrev}
-                                className="px-4 py-2 rounded-xl bg-gray-300 hover:bg-gray-400"
-                                disabled={currentQuestionIndex === 0}
-                            >
-                                Previous
-                            </button>
-                            {currentQuestionIndex === allQuestions.length - 1 ? (
-                                <button
-                                    onClick={handleSubmit}
-                                    className={`px-4 py-2 rounded-xl font-bold ${
-                                        isTimerRunning ? 'bg-indigo-600 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                                    }`}
-                                    disabled={!isTimerRunning}
-                                >
-                                    Submit
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleNext}
-                                    className={`px-4 py-2 rounded-xl font-bold ${
-                                        isTimerRunning ? 'bg-indigo-600 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-                                    }`}
-                                    disabled={!isTimerRunning}
-                                >
-                                    Next
-                                </button>
-                            )}
-                        </div>
-
-                        {saveStatus && (
-                            <p className={`text-center mt-4 ${saveStatus.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
-                                {saveStatus}
+                <div className="text-center mb-8">
+                    <div className="relative">
+                        <div className="text-6xl mb-4 animate-bounce">🎧</div>
+                        <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
+                            🎵 Test 1 - Auditory Learning
+                        </h1>
+                    </div>
+                    <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
+                        <p className="text-2xl text-purple-800 font-bold mb-4">
+                            Hi {username || 'Student'}! 👋 Let's test your listening skills!
+                        </p>
+                        <p className="text-lg text-blue-700">
+                            🌟 Listen carefully and answer the questions! 🌟
+                        </p>
+                        <p className="text-md text-gray-600">
+                            Question {currentQuestionIndex + 1} of {quizzes.length}
+                            {isSubmitted && " - Quiz Completed!"}
+                        </p>
+                        {!isSubmitted && (
+                            <p className="text-lg font-bold mt-2">
+                                Current Score: <span className={getScoreColor(totalMarks)}>
+                                    {totalMarks} / {quizzes.length}
+                                </span>
                             </p>
                         )}
+                    </div>
+                </div>
 
-                        <div className="text-center mt-4">
-                            Time: {formatTime(time)}
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        <h2 className="text-2xl font-bold text-green-700 text-center mb-4">✅ Quiz Completed!</h2>
-                        <p className="text-center mb-2">Total Time: {formatTime(totalTime)}</p>
-                        <p className="text-center mb-6">
-                            Total Marks: {answers.filter((ans, idx) => ans === allQuestions[idx].question.correctAnswer).length} / {allQuestions.length}
-                        </p>
-                        <button
-                            onClick={resetQuiz}
-                            className="w-full bg-blue-600 text-white py-3 rounded-xl mb-4"
-                        >
-                            <Home className="inline-block mr-2" size={20} /> Restart
-                        </button>
-                        <Link to="/" className="block text-center text-indigo-600 underline">
-                        Home
-                        </Link>
-                    </>
-                )}
+                <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
+                    {!isSubmitted ? (
+                        <>
+                            <div className="bg-white p-4 rounded-xl border-2 border-purple-300 mb-6">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-lg font-bold text-purple-800">Progress</span>
+                                    <span className="text-lg font-bold text-purple-800">
+                                        {currentQuestionIndex + 1} / {quizzes.length}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-4">
+                                    <div
+                                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full transition-all duration-300"
+                                        style={{ width: `${((currentQuestionIndex + 1) / quizzes.length) * 100}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <h2 className="text-3xl font-semibold text-center mb-2 text-purple-800">
+                                Auditory Question {currentQuestionIndex + 1}
+                            </h2>
+                            <h3 className="text-xl font-medium text-center mb-6 text-blue-700">
+                                {currentQuiz?.question}
+                            </h3>
+
+                            {currentQuiz?.audioUrl && (
+                                <audio ref={audioRef} src={currentQuiz.audioUrl} />
+                            )}
+
+                            <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
+                                <span className="text-2xl mr-6 font-bold text-blue-800">
+                                    ⏱️ Total Time: {formatTime(totalTime)}
+                                </span>
+                                <span className="text-lg mr-6 text-gray-600">
+                                    Current Question: {formatTime(time)}
+                                </span>
+                                <div className="flex justify-center gap-4 mt-4">
+                                    <button
+                                        onClick={handleStartTimer}
+                                        disabled={isTimerRunning}
+                                        className="bg-green-500 text-white px-6 py-3 rounded-full disabled:opacity-50 disabled:bg-gray-300 hover:bg-green-600 transition-colors font-bold text-lg"
+                                    >
+                                        {isTimerRunning ? "⏰ Timer Running..." : "🚀 Start Now"}
+                                    </button>
+                                    <button
+                                        onClick={playAudio}
+                                        className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition-colors font-bold"
+                                        disabled={!isTimerRunning || !currentQuiz?.audioUrl}
+                                    >
+                                        <Play className="inline-block mr-2" size={20} />
+                                        {isPlaying ? "Playing..." : "Play Audio"}
+                                    </button>
+                                    <button
+                                        onClick={pauseAudio}
+                                        className="bg-red-500 text-white px-6 py-3 rounded-full hover:bg-red-600 transition-colors font-bold"
+                                        disabled={!isPlaying}
+                                    >
+                                        <Pause className="inline-block mr-2" size={20} />
+                                        Pause
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 mb-6">
+                                {currentOptions.map((option: string, idx: number) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleAnswerSelect(option)}
+                                        className={`w-full px-6 py-4 rounded-xl text-left border-2 font-semibold text-lg transition-all duration-300 ${
+                                            answers[currentQuestionIndex] === option
+                                                ? 'bg-purple-500 text-white border-purple-600 shadow-lg transform scale-105'
+                                                : 'bg-gray-100 hover:bg-gray-200 border-gray-300 hover:border-purple-300'
+                                        }`}
+                                        disabled={!isTimerRunning}
+                                    >
+                                        {String.fromCharCode(65 + idx)}. {option}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {showCurrentResult && currentResult && (
+                                <div className="mt-6 p-6 rounded-xl border-2 bg-green-100 border-green-400">
+                                    <p className="text-2xl font-bold text-green-800 mb-4">
+                                        Question {currentQuestionIndex + 1} Result
+                                    </p>
+                                    <p className={`text-xl font-bold ${getScoreColor(currentResult.marks)}`}>
+                                        Score: {currentResult.marks} / 1
+                                    </p>
+                                    <p className="text-lg text-gray-700">
+                                        Time: {formatTime(currentResult.timeTaken)}
+                                    </p>
+                                    <div className="mt-4">
+                                        <div className={`p-4 rounded mb-2 ${
+                                            currentResult.marks > 0
+                                                ? 'bg-green-200'
+                                                : 'bg-red-200'
+                                        }`}>
+                                            <p className="font-semibold">{currentQuiz?.question}</p>
+                                            <p className="mt-2">
+                                                <strong>Your Answer:</strong> {currentResult.userAnswer || 'No answer'}
+                                            </p>
+                                            <p>
+                                                <strong>Correct Answer:</strong> {currentResult.correctAnswer}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex justify-center gap-4 mt-10">
+                                {showCurrentResult ? (
+                                    <button
+                                        onClick={handleNextQuestion}
+                                        className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
+                                    >
+                                        {currentQuestionIndex < quizzes.length - 1 ? "Next Question ➡️" : "Finish Quiz 🎯"}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleCheckAnswer}
+                                        disabled={!answers[currentQuestionIndex] || !isTimerRunning || isCheckingAnswer}
+                                        className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
+                                    >
+                                        {isCheckingAnswer ? "Checking... ⏳" : "Check Answer ➡️"}
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="mt-6 text-center bg-yellow-100 p-4 rounded-xl border-2 border-yellow-300">
+                                <p className="text-lg text-yellow-800 font-semibold">
+                                    💡 Listen to the audio and select your answer to check your response
+                                </p>
+                                {currentQuestionIndex === quizzes.length - 1 && !showCurrentResult && (
+                                    <p className="text-lg text-green-800 font-bold mt-2">
+                                        🎯 This is the final question. Check your answer before finishing!
+                                    </p>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <h2 className="text-4xl font-bold text-center text-purple-900 mb-4">
+                                🎉 Congratulations! You completed all questions!
+                            </h2>
+                            <div className="text-center mb-6">
+                                <p className="text-xl font-semibold mb-2 text-green-800">
+                                    Total Time Taken: {formatTime(totalTime)}
+                                </p>
+                                <p className={`text-2xl font-bold ${getScoreColor(totalMarks)}`}>
+                                    Total Marks: {totalMarks} / {quizzes.length}
+                                </p>
+                            </div>
+                            <div className="mb-8 bg-white p-6 rounded-xl border-2 border-purple-300">
+                                <h3 className="text-2xl font-bold text-purple-800 mb-4">Detailed Results</h3>
+                                <div className="space-y-4">
+                                    {results.map((result, idx) => (
+                                        <div key={idx} className={`p-4 rounded-lg border ${
+                                            result.marks > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                                        }`}>
+                                            <p className="font-bold">Question {idx + 1}</p>
+                                            <p>Your Answer: {result.userAnswer}</p>
+                                            <p>Correct Answer: {result.correctAnswer}</p>
+                                            <p>Time Taken: {formatTime(result.timeTaken)}</p>
+                                            <p className="font-semibold">Marks: {result.marks}/1</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex justify-center space-x-4">
+                                <button
+                                    onClick={resetQuiz}
+                                    className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
+                                >
+                                    🔄 Restart Quiz
+                                </button>
+                                <Link to="/">
+                                    <button
+                                        className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                                        aria-label="Back to home"
+                                    >
+                                        <Home className="mr-3 h-5 w-5 inline" />
+                                        Home
+                                    </button>
+                                </Link>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -5,307 +5,202 @@ import { Home, Save } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header.tsx";
 
-// Define types for the question structure
-interface Question {
-  id: number;
-  text: string;
-  correctAnswer: string;
-  audioText: string;
-  options: string[];
-}
-
-// Define types for the quiz structure
-interface Quiz {
-  quizName: string;
-  audioUrl: string;
-  questions: Question[];
-}
-
 const SaveAuditoryQuiz: React.FC = () => {
-  const [quiz, setQuiz] = useState<Quiz>({
-    quizName: 'AUDITORY',
-    audioUrl: '',
-    questions: [
-      {
-        id: 1,
-        text: '',
-        correctAnswer: '',
-        audioText: '',
-        options: ['', '', '', '']
-      }
-    ]
-  });
+  const [questionText, setQuestionText] = useState('');
+  const [answer1, setAnswer1] = useState('');
+  const [answer2, setAnswer2] = useState('');
+  const [answer3, setAnswer3] = useState('');
+  const [answer4, setAnswer4] = useState('');
+  const [correctAnswer, setCorrectAnswer] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle input changes for quiz-level fields
-  const handleQuizChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setQuiz(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Handle question field changes
-  const handleQuestionChange = (index: number, field: string, value: string) => {
-    setQuiz(prev => {
-      const newQuestions = [...prev.questions];
-      newQuestions[index] = { ...newQuestions[index], [field]: value };
-      return { ...prev, questions: newQuestions };
-    });
-  };
-
-  // Handle option changes
-  const handleOptionChange = (questionIndex: number, optionIndex: number, value: string) => {
-    setQuiz(prev => {
-      const newQuestions = [...prev.questions];
-      newQuestions[questionIndex] = {
-        ...newQuestions[questionIndex],
-        options: newQuestions[questionIndex].options.map((opt, idx) =>
-          idx === optionIndex ? value : opt
-        )
-      };
-      return { ...prev, questions: newQuestions };
-    });
-  };
-
-  // Add a new question
-  const addQuestion = () => {
-    setQuiz(prev => ({
-      ...prev,
-      questions: [
-        ...prev.questions,
-        {
-          id: prev.questions.length + 1,
-          text: '',
-          correctAnswer: '',
-          audioText: '',
-          options: ['', '', '', '']
-        }
-      ]
-    }));
-  };
-
-  // Remove a question
-  const removeQuestion = (index: number) => {
-    setQuiz(prev => ({
-      ...prev,
-      questions: prev.questions
-        .filter((_, idx) => idx !== index)
-        .map((q, idx) => ({ ...q, id: idx + 1 }))
-    }));
-  };
-
-  // Validate quiz data before submission
   const validateQuiz = (): boolean => {
-    if (!quiz.quizName.trim()) {
-      setError('Quiz name is required');
+    if (!questionText.trim()) {
+      setError('Question is required');
       return false;
     }
-    for (const question of quiz.questions) {
-      if (!question.text.trim()) {
-        setError('All questions must have text');
-        return false;
-      }
-      if (!question.correctAnswer.trim()) {
-        setError('All questions must have a correct answer');
-        return false;
-      }
-      if (!question.audioText.trim()) {
-        setError('All questions must have audio text');
-        return false;
-      }
-      if (question.options.some(opt => !opt.trim())) {
-        setError('All options must be filled');
-        return false;
-      }
+    if (!correctAnswer.trim()) {
+      setError('Correct answer is required');
+      return false;
+    }
+    if (!answer1.trim() || !answer2.trim() || !answer3.trim() || !answer4.trim()) {
+      setError('All answer options must be filled');
+      return false;
     }
     return true;
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSaveStatus(null);
 
-    if (!validateQuiz()) {
-      return;
-    }
+    if (!validateQuiz()) return;
 
     try {
-      const response = await axios.post('http://localhost:5000/api/v1/quizzes/auditory/questions', quiz);
+      const payload = {
+        question: questionText,
+        answer1,
+        answer2,
+        answer3,
+        answer4,
+        correctAnswer,
+        audioUrl: audioUrl.trim() || undefined
+      };
+
+      await axios.post('http://localhost:5000/api/v1/quizzes/auditory/create', payload);
+
       setSaveStatus('Auditory quiz saved successfully!');
-      console.log('Quiz saved:', response.data);
+
+      setQuestionText('');
+      setAnswer1('');
+      setAnswer2('');
+      setAnswer3('');
+      setAnswer4('');
+      setCorrectAnswer('');
+      setAudioUrl('');
     } catch (error: any) {
-      setError('Failed to save quiz: ' + error.message);
-      console.error('Error saving quiz:', error);
+      setError('Failed to save quiz: ' + (error.response?.data?.error || error.message));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
-      <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
-      <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
-      <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
+        <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
+        <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
+        <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
-      <Header />
+        <Header />
 
-      <div className="container mx-auto px-4 py-12">
-        {saveStatus && (
-          <div className="mb-4 p-4 rounded-lg bg-green-100 text-green-700">
-            {saveStatus}
-          </div>
-        )}
-        {error && (
-          <div className="mb-4 p-4 rounded-lg bg-red-100 text-red-700">
-            {error}
-          </div>
-        )}
+        <div className="container mx-auto px-4 py-12">
+          {saveStatus && (
+              <div className="mb-4 p-4 rounded-lg bg-green-100 text-green-700">{saveStatus}</div>
+          )}
+          {error && (
+              <div className="mb-4 p-4 rounded-lg bg-red-100 text-red-700">{error}</div>
+          )}
 
-        <div className="text-center mb-16">
-          <div className="relative">
-            <div className="text-6xl mb-4 animate-bounce">🎧</div>
-            <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-              🎵 Create Auditory Quiz
-            </h1>
-            <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
-            <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
-          </div>
-          <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
-            <p className="text-2xl text-purple-800 font-bold mb-4">
-              Create a new auditory quiz with questions
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
-          <form onSubmit={handleSubmit}>
-            <div className="mb-8">
-              <label className="block text-lg font-bold text-purple-800 mb-2">
-                Quiz Name
-              </label>
-              <input
-                type="text"
-                name="quizName"
-                value={quiz.quizName}
-                onChange={handleQuizChange}
-                className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                placeholder="Enter quiz name"
-              />
+          <div className="text-center mb-16">
+            <div className="relative">
+              <div className="text-6xl mb-4 animate-bounce">🎧</div>
+              <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
+                🎵 Create Auditory Quiz
+              </h1>
+              <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
+              <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
             </div>
-
-            <div className="mb-8">
-              <label className="block text-lg font-bold text-purple-800 mb-2">
-                Audio URL (optional)
-              </label>
-              <input
-                type="text"
-                name="audioUrl"
-                value={quiz.audioUrl}
-                onChange={handleQuizChange}
-                className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                placeholder="Enter audio URL (e.g., MP3 file path)"
-              />
+            <div className="bg-white/90 rounded-3xl p-6 max-w-4xl mx-auto border-4 border-yellow-400 shadow-2xl">
+              <p className="text-2xl text-purple-800 font-bold mb-4">
+                Create a new auditory quiz with one question
+              </p>
             </div>
+          </div>
 
-            {quiz.questions.map((question, qIndex) => (
-              <div key={qIndex} className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 className="text-xl font-bold text-purple-800 mb-4">
-                  Question {qIndex + 1}
-                </h3>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Question Text
-                  </label>
-                  <input
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Question</label>
+                <input
                     type="text"
-                    value={question.text}
-                    onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
+                    value={questionText}
+                    onChange={e => setQuestionText(e.target.value)}
                     className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                    placeholder="Enter question text"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Audio Text
-                  </label>
-                  <input
-                    type="text"
-                    value={question.audioText}
-                    onChange={(e) => handleQuestionChange(qIndex, 'audioText', e.target.value)}
-                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                    placeholder="Enter text to be spoken"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Correct Answer
-                  </label>
-                  <input
-                    type="text"
-                    value={question.correctAnswer}
-                    onChange={(e) => handleQuestionChange(qIndex, 'correctAnswer', e.target.value)}
-                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                    placeholder="Enter correct answer"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-md font-medium text-gray-700 mb-2">
-                    Options
-                  </label>
-                  {question.options.map((option, oIndex) => (
-                    <input
-                      key={oIndex}
-                      type="text"
-                      value={option}
-                      onChange={(e) => handleOptionChange(qIndex, oIndex, e.target.value)}
-                      className="w-full p-3 mb-2 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                      placeholder={`Option ${oIndex + 1}`}
-                    />
-                  ))}
-                </div>
-                {quiz.questions.length > 1 && (
-                  <Button
-                    type="button"
-                    onClick={() => removeQuestion(qIndex)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
-                  >
-                    Remove Question
-                  </Button>
-                )}
+                    placeholder="Enter question"
+                />
               </div>
-            ))}
 
-            <div className="flex justify-between mb-8">
-              <Button
-                type="button"
-                onClick={addQuestion}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-medium"
-              >
-                Add Question
-              </Button>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-xl shadow-lg transform hover:scale-110 transition-all duration-300"
-              >
-                <Save className="inline mr-2" />
-                Save Quiz
-              </Button>
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Answer 1</label>
+                <input
+                    type="text"
+                    value={answer1}
+                    onChange={e => setAnswer1(e.target.value)}
+                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                    placeholder="Answer 1"
+                />
+              </div>
+
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Answer 2</label>
+                <input
+                    type="text"
+                    value={answer2}
+                    onChange={e => setAnswer2(e.target.value)}
+                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                    placeholder="Answer 2"
+                />
+              </div>
+
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Answer 3</label>
+                <input
+                    type="text"
+                    value={answer3}
+                    onChange={e => setAnswer3(e.target.value)}
+                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                    placeholder="Answer 3"
+                />
+              </div>
+
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Answer 4</label>
+                <input
+                    type="text"
+                    value={answer4}
+                    onChange={e => setAnswer4(e.target.value)}
+                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                    placeholder="Answer 4"
+                />
+              </div>
+
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Correct Answer</label>
+                <input
+                    type="text"
+                    value={correctAnswer}
+                    onChange={e => setCorrectAnswer(e.target.value)}
+                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                    placeholder="Correct Answer"
+                />
+              </div>
+
+              <div className="mb-8">
+                <label className="block text-lg font-bold text-purple-800 mb-2">Audio URL (optional)</label>
+                <input
+                    type="text"
+                    value={audioUrl}
+                    onChange={e => setAudioUrl(e.target.value)}
+                    className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                    placeholder="Audio URL"
+                />
+              </div>
+
+              <div className="flex justify-between mb-8">
+                <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-xl shadow-lg transform hover:scale-110 transition-all duration-300"
+                >
+                  <Save className="inline mr-2" />
+                  Save Quiz
+                </Button>
+              </div>
+            </form>
+
+            <div className="flex justify-center mt-8">
+              <Link to="/">
+                <Button
+                    className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                >
+                  <Home className="mr-3 h-5 w-5" />
+                  🏠 Home
+                </Button>
+              </Link>
             </div>
-          </form>
-
-          <div className="flex justify-center mt-8">
-            <Link to="/">
-              <Button
-                className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
-              >
-                <Home className="mr-3 h-5 w-5" />
-                🏠 Home
-              </Button>
-            </Link>
           </div>
         </div>
       </div>
-    </div>
   );
 };
 
