@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { Eye, Volume2, PenTool, Activity } from 'lucide-react';
 
 interface UserQuizData {
@@ -12,7 +13,10 @@ interface UserQuizData {
 const UserAllResults: React.FC = () => {
     const [quizData, setQuizData] = useState<UserQuizData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [showPopup, setShowPopup] = useState<boolean>(false);
+    const [lowScoreModalities, setLowScoreModalities] = useState<string[]>([]);
     const token = localStorage.getItem('authToken');
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUserQuizPercentages = async () => {
@@ -49,6 +53,20 @@ const UserAllResults: React.FC = () => {
 
         fetchUserQuizPercentages();
     }, [token]);
+
+    // Check percentages for popup after quizData is updated
+    useEffect(() => {
+        if (quizData?.results) {
+            const titles = ['Visual', 'Auditory', 'Read/Write', 'Kinesthetic'];
+            const lowScores = titles.filter(title => {
+                const result = getResultForTitle(title);
+                const percentage = result ? parsePercentage(result) : 0;
+                return percentage < 60;
+            });
+            setLowScoreModalities(lowScores);
+            setShowPopup(lowScores.length > 0);
+        }
+    }, [quizData]);
 
     // Fixed parsePercentage function to handle both decimal and whole numbers
     const parsePercentage = (result: string) => {
@@ -94,6 +112,13 @@ const UserAllResults: React.FC = () => {
         );
     };
 
+    // Navigate to game page for a specific modality
+    const handleNavigateToGame = (modality: string) => {
+        const path = `/games/${modality.toLowerCase().replace(/[\/\s]/g, '')}`;
+        setShowPopup(false);
+        navigate(path);
+    };
+
     // Debug state in the UI
     useEffect(() => {
         console.log('quizData state:', quizData);
@@ -106,12 +131,36 @@ const UserAllResults: React.FC = () => {
             {error ? (
                 <p className="text-red-600 text-center">{error}</p>
             ) : quizData ? (
-                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                    {renderCard('Visual', 'from-purple-500 to-pink-500', Eye)}
-                    {renderCard('Auditory', 'from-blue-500 to-teal-400', Volume2)}
-                    {renderCard('Read/Write', 'from-green-500 to-lime-400', PenTool)}
-                    {renderCard('Kinesthetic', 'from-yellow-500 to-orange-500', Activity)}
-                </div>
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                        {renderCard('Visual', 'from-purple-500 to-pink-500', Eye)}
+                        {renderCard('Auditory', 'from-blue-500 to-teal-400', Volume2)}
+                        {renderCard('Read/Write', 'from-green-500 to-lime-400', PenTool)}
+                        {renderCard('Kinesthetic', 'from-yellow-500 to-orange-500', Activity)}
+                    </div>
+
+                    {showPopup && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4">Low Quiz Scores</h2>
+                                <p className="text-gray-600 mb-6">
+                                    The following learning styles have scores below 60%. Take more quizzes to improve your results!
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    {lowScoreModalities.map(modality => (
+                                        <button
+                                            key={modality}
+                                            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                            onClick={() => handleNavigateToGame(modality)}
+                                        >
+                                            Improve {modality} Skills
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
             ) : (
                 <p className="text-center">Loading...</p>
             )}
