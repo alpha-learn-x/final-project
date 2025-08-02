@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Volume2, PenTool, Activity } from 'lucide-react';
+import { Eye, Volume2, PenTool, Activity, X } from 'lucide-react';
 
 interface UserQuizData {
     userId: string;
@@ -141,7 +141,14 @@ const UserAllResults: React.FC = () => {
 
                     {showPopup && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full relative">
+                                <button
+                                    className="absolute top-2 right-2 text-gray-600 hover:text-gray-800"
+                                    onClick={() => setShowPopup(false)}
+                                    aria-label="Close popup"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
                                 <h2 className="text-xl font-bold text-gray-800 mb-4">Low Quiz Scores</h2>
                                 <p className="text-gray-600 mb-6">
                                     The following learning styles have scores below 60%. Take more quizzes to improve your results!

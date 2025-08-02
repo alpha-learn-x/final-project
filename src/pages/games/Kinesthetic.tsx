@@ -146,11 +146,11 @@ const Kinesthetic: React.FC = () => {
             [sound]: 'No answer',
         }));
     };
-
+sss
     const isComplete = () => {
         const currentQuiz = quizzes[currentQuizIndex];
         if (!currentQuiz) return false;
-        return Object.keys(currentQuiz.correctPairs).every(sound => droppedItems.hasOwnProperty(sound));
+        return Object.keys(currentQuiz.correctPairs).every(sound => Object.prototype.hasOwnProperty.call(droppedItems, sound));
     };
 
     const checkAnswerWithBackend = async (quizId: string, userAnswer: { [key: string]: string }): Promise<boolean> => {
