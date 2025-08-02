@@ -67,7 +67,7 @@ const Rec_SaveVisualQuiz: React.FC = () => {
         pauseAt: parseFloat(pauseAt)
       };
 
-      const res = await axios.post('http://localhost:5000/api/v1/quizzes/Rec_visual/create', payload);
+      const res = await axios.post('http://localhost:5000/api/v1/quizzes/rec-visual/create', payload);
 
       setSaveStatus('Quiz saved successfully!');
       setQuizName('Rec_VISUAL');

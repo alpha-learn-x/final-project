@@ -50,7 +50,7 @@ const Rec_SaveAuditoryQuiz: React.FC = () => {
         audioUrl: audioUrl.trim() || undefined
       };
 
-      await axios.post('http://localhost:5000/api/v1/quizzes/Rec_auditory/create', payload);
+      await axios.post('http://localhost:5000/api/v1/quizzes/rec-auditory/create', payload);
 
       setSaveStatus('Auditory quiz saved successfully!');
 

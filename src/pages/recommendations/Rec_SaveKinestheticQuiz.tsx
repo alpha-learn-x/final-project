@@ -122,7 +122,7 @@ const Rec_SaveKinestheticQuiz: React.FC = () => {
             };
 
             const response = await axios.post(
-                "http://localhost:5000/api/v1/quizzes/Rec_kinesthetic/create",
+                "http://localhost:5000/api/v1/quizzes/rec-kinesthetic/create",
                 payload
             );
 

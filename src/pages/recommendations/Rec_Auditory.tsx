@@ -61,7 +61,7 @@ const Rec_Auditory: React.FC = () => {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/Rec_Auditory/get-all');
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/rec-auditory/get-all');
                 const quizzesData = response.data;
 
                 if (!quizzesData || !Array.isArray(quizzesData)) {
@@ -145,7 +145,7 @@ const Rec_Auditory: React.FC = () => {
 
     const checkAnswerWithBackend = async (quizId: string, selectedAnswer: string): Promise<boolean> => {
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/Rec_Auditory/check-answer', {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/rec-auditory/check-answer', {
                 quizId,
                 selectedAnswer
             });
@@ -263,7 +263,7 @@ const Rec_Auditory: React.FC = () => {
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
+            const response = await axios.post('http://localhost:5000/api/v1/rec-quizzes/results', payload, {
                 headers: {
                     'Content-Type': 'application/json'
                 }

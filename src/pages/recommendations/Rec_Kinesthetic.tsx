@@ -59,7 +59,7 @@ const Rec_Kinesthetic: React.FC = () => {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/Rec_kinesthetic/get-all');
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/rec-kinesthetic/get-all');
                 console.log('Quizzes data:', response.data);
 
                 if (Array.isArray(response.data) && response.data.length > 0) {
@@ -155,7 +155,7 @@ const Rec_Kinesthetic: React.FC = () => {
 
     const checkAnswerWithBackend = async (quizId: string, userAnswer: { [key: string]: string }): Promise<boolean> => {
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/Rec_kinesthetic/check-answer', {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/rec-kinesthetic/check-answer', {
                 quizId,
                 userPairs: userAnswer,
             });
@@ -234,7 +234,7 @@ const Rec_Kinesthetic: React.FC = () => {
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
+            const response = await axios.post('http://localhost:5000/api/v1/rec-quizzes/results', payload, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
