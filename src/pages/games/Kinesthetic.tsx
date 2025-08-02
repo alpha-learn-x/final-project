@@ -362,15 +362,15 @@ const Kinesthetic: React.FC = () => {
                                 Drag and Drop to correct Position
                             </h3>
 
-                            <div className="border border-gray-400 grid grid-cols-5 gap-4 p-4 mb-6 bg-gray-50 rounded-xl">
+                            <div className="border border-gray-400 flex justify-center gap-6 p-8 mb-6 bg-gray-50 rounded-xl overflow-x-auto">
                                 {task.images.map((img) => (
                                     <div
                                         key={img.id}
                                         draggable
                                         onDragStart={(e) => handleDragStart(e, img.id)}
-                                        className="bg-white w-24 h-24 flex items-center justify-center cursor-move hover:bg-blue-50 transition-colors border-2 border-gray-300 rounded-lg shadow-md hover:shadow-lg"
+                                        className="w-52 h-52 flex items-center justify-center cursor-move hover:bg-blue-50 transition-colors border-2 border-gray-300 rounded-lg shadow-md hover:shadow-lg flex-shrink-0"
                                     >
-                                        <img src={img.src} alt={img.id} className="w-12 h-12" />
+                                        <img src={img.src} alt={img.id} className="w-52 h-52 object-contain" />
                                     </div>
                                 ))}
                             </div>
@@ -402,12 +402,12 @@ const Kinesthetic: React.FC = () => {
                                         <span className="font-bold text-lg text-gray-800">
                                             {index + 1}. {option}
                                         </span>
-                                        <div className="w-28 h-20 bg-white rounded-lg border border-gray-300 shadow-inner flex items-center justify-center">
+                                        <div className="w-48 h-36 bg-white rounded-lg border border-gray-300 shadow-inner flex items-center justify-center">
                                             {droppedItems[option] ? (
                                                 <img
                                                     src={task.images.find(img => img.id === droppedItems[option])?.src}
                                                     alt={droppedItems[option]}
-                                                    className="w-16 h-16"
+                                                    className="w-40 h-32 object-contain"
                                                 />
                                             ) : (
                                                 <span className="text-gray-400 italic">Drop here</span>
