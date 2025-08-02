@@ -1,76 +1,128 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { BookOpen, Eye, Volume2, PenTool, Activity } from 'lucide-react'; // icons
-
-interface QuizTotals {
-    percentage: number;
-    totalMarks: number;
-}
+import { useNavigate } from 'react-router-dom';
+import { Eye, Volume2, PenTool, Activity } from 'lucide-react';
 
 interface UserQuizData {
-    VISUAL: QuizTotals;
-    AUDITORY: QuizTotals;
-    READWRITE: QuizTotals;
-    KINESTHETIC: QuizTotals;
-    userId: string | null;
-    username: string | null;
+    userId: string;
+    username: string;
+    email: string;
+    results: string[]; // e.g., ["READWRITE 200%"]
 }
 
 const UserAllResults: React.FC = () => {
     const [quizData, setQuizData] = useState<UserQuizData | null>(null);
-    const [error, setUserQuizError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [showPopup, setShowPopup] = useState<boolean>(false);
+    const [lowScoreModalities, setLowScoreModalities] = useState<string[]>([]);
     const token = localStorage.getItem('authToken');
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchUserQuizTotals = async () => {
-            setUserQuizError(null);
+        const fetchUserQuizPercentages = async () => {
+            setError(null);
 
             if (!token) {
-                setUserQuizError('No authentication token found. Please sign in.');
-                console.error('No token for user quiz totals');
+                setError('No authentication token found. Please sign in.');
                 return;
             }
 
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/user-quiz-totals', {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/results/me/percentages', {
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                console.log('User quiz totals response:', response.data);
-                setQuizData(response.data.data);
+
+                console.log('API Response:', response.data); // Debug the full response
+
+                // Handle response structure (check for data wrapper)
+                const userData: UserQuizData = response.data.data || response.data;
+                if (!userData.results || !Array.isArray(userData.results)) {
+                    throw new Error('Invalid data format from API');
+                }
+                console.log(userData);
+                setQuizData(userData);
             } catch (error: any) {
-                console.error('Error fetching user quiz totals:', error.response?.data || error.message);
-                setUserQuizError(
-                    error.response?.data?.message || 'Failed to load quiz totals. Please try again later.'
+                console.error('Error fetching user quiz percentages:', error.response?.data || error.message);
+                setError(
+                    error.response?.data?.error || 'Failed to load quiz percentages. Please try again later.'
                 );
             }
         };
 
-        fetchUserQuizTotals();
+        fetchUserQuizPercentages();
     }, [token]);
+
+    // Check percentages for popup after quizData is updated
+    useEffect(() => {
+        if (quizData?.results) {
+            const titles = ['Visual', 'Auditory', 'Read/Write', 'Kinesthetic'];
+            const lowScores = titles.filter(title => {
+                const result = getResultForTitle(title);
+                const percentage = result ? parsePercentage(result) : 0;
+                return percentage < 60;
+            });
+            setLowScoreModalities(lowScores);
+            setShowPopup(lowScores.length > 0);
+        }
+    }, [quizData]);
+
+    // Fixed parsePercentage function to handle both decimal and whole numbers
+    const parsePercentage = (result: string) => {
+        // Match patterns like "200%", "20.5%", "0.0%"
+        const match = result.match(/(\d+(?:\.\d+)?)%/);
+        return match ? parseFloat(match[1]) : 0;
+    };
+
+    const getResultForTitle = (title: string) => {
+        const upperTitle = title.toUpperCase().replace(/[\/\s]/g, ''); // Handle "Read/Write" -> "READWRITE"
+        console.log('Looking for title:', upperTitle, 'in results:', quizData?.results);
+        return quizData?.results.find(r => {
+            const resultTitle = r.split(' ')[0]; // Get the quiz name part before the percentage
+            console.log('Comparing:', resultTitle, 'with:', upperTitle);
+            return resultTitle === upperTitle;
+        });
+    };
 
     const renderCard = (
         title: string,
-        data?: QuizTotals,
         color: string = 'from-indigo-500 to-blue-500',
         Icon?: React.ElementType
-    ) => (
-        <div className={`bg-gradient-to-br ${color} text-white shadow-xl rounded-2xl p-6 w-full transform transition-transform hover:scale-[1.02]`}>
-            <div className="flex items-center mb-4">
-                {Icon && <Icon className="w-8 h-8 mr-3" />}
-                <h2 className="text-xl font-bold">{title}</h2>
+    ) => {
+        const result = getResultForTitle(title);
+        const percentage = result ? parsePercentage(result) : 0;
+
+        console.log(`Card for ${title}:`, { result, percentage });
+
+        return (
+            <div className={`bg-gradient-to-br ${color} text-white shadow-xl rounded-2xl p-6 w-full transform transition-transform hover:scale-[1.02]`}>
+                <div className="flex items-center mb-4">
+                    {Icon && <Icon className="w-8 h-8 mr-3" />}
+                    <h2 className="text-xl font-bold">{title}</h2>
+                </div>
+                <div className="text-sm mb-2">Percentage: <span className="font-semibold">{percentage}%</span></div>
+                <div className="w-full bg-white/30 rounded-full h-3 mt-2">
+                    <div
+                        className="bg-white h-3 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                    />
+                </div>
             </div>
-            <div className="text-sm mb-1">Total Marks: <span className="font-semibold">{data?.totalMarks ?? 0}</span></div>
-            <div className="text-sm mb-2">Percentage: <span className="font-semibold">{data?.percentage ?? 0}%</span></div>
-            <div className="w-full bg-white/30 rounded-full h-3 mt-2">
-                <div
-                    className="bg-white h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${data?.percentage ?? 0}%` }}
-                />
-            </div>
-        </div>
-    );
+        );
+    };
+
+    // Navigate to game page for a specific modality
+    const handleNavigateToGame = (modality: string) => {
+        const path = `/games/${modality.toLowerCase().replace(/[\/\s]/g, '')}`;
+        setShowPopup(false);
+        navigate(path);
+    };
+
+    // Debug state in the UI
+    useEffect(() => {
+        console.log('quizData state:', quizData);
+    }, [quizData]);
 
     return (
         <div className="bg-gray-100 p-6">
@@ -78,15 +130,40 @@ const UserAllResults: React.FC = () => {
 
             {error ? (
                 <p className="text-red-600 text-center">{error}</p>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                    {renderCard('Visual', quizData?.VISUAL, 'from-purple-500 to-pink-500', Eye)}
-                    {renderCard('Auditory', quizData?.AUDITORY, 'from-blue-500 to-teal-400', Volume2)}
-                    {renderCard('Read/Write', quizData?.READWRITE, 'from-green-500 to-lime-400', PenTool)}
-                    {renderCard('Kinesthetic', quizData?.KINESTHETIC, 'from-yellow-500 to-orange-500', Activity)}
-                </div>
-            )}
+            ) : quizData ? (
+                <>
+                    <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                        {renderCard('Visual', 'from-purple-500 to-pink-500', Eye)}
+                        {renderCard('Auditory', 'from-blue-500 to-teal-400', Volume2)}
+                        {renderCard('Read/Write', 'from-green-500 to-lime-400', PenTool)}
+                        {renderCard('Kinesthetic', 'from-yellow-500 to-orange-500', Activity)}
+                    </div>
 
+                    {showPopup && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4">Low Quiz Scores</h2>
+                                <p className="text-gray-600 mb-6">
+                                    The following learning styles have scores below 60%. Take more quizzes to improve your results!
+                                </p>
+                                <div className="flex flex-col gap-3">
+                                    {lowScoreModalities.map(modality => (
+                                        <button
+                                            key={modality}
+                                            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+                                            onClick={() => handleNavigateToGame(modality)}
+                                        >
+                                            Improve {modality} Skills
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <p className="text-center">Loading...</p>
+            )}
         </div>
     );
 };

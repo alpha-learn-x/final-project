@@ -4,21 +4,16 @@ import { Home } from 'lucide-react';
 import axios from 'axios';
 import Header from "@/components/Header.tsx";
 
-// Define types for the question structure
 interface Question {
-    id: number;
-    scenario: string;
-    steps: string[];
-    correctOrder: number[];
-}
-
-// Define type for the full quiz document
-interface Quiz {
     _id: string;
     quizName: string;
-    questions: Question[];
+    question: string;
+    answer1: string;
+    answer2: string;
+    answer3: string;
+    answer4: string;
+    correctAnswerOrder: string[]; // Array of strings
     createdAt: string;
-    __v: number;
 }
 
 // Define types for user data
@@ -29,286 +24,305 @@ interface UserData {
     email?: string;
 }
 
+// Define types for quiz results
+interface QuizResult {
+    taskId: string;
+    timeTaken: number;
+    marks: number;
+    userAnswer: string[];
+    correctAnswer: string[];
+}
+
 const ReadWrite: React.FC = () => {
-    const [language] = useState("english");
-    const [isSoundEnabled] = useState(false);
-    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [saveStatus, setSaveStatus] = useState<string | null>(null);
-    const [time, setTime] = useState(0);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
-    const [stepsOrder, setStepsOrder] = useState<string[]>(Array(5).fill(''));
-    const [marks, setMarks] = useState<number[]>([]);
+    const [questions, setQuestions] = useState<Question[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+
+    // Current question state
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+    const [answers, setAnswers] = useState<string[][]>([]); // Array of selected answer indices
+    const [typedAnswers, setTypedAnswers] = useState<string[]>([]); // New state for typed order
+    const [results, setResults] = useState<QuizResult[]>([]);
     const [totalMarks, setTotalMarks] = useState<number>(0);
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const [showResults, setShowResults] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
     const [showCurrentResult, setShowCurrentResult] = useState(false);
-    const [userId, setUserId] = useState('');
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [user, setUser] = useState('');
-    const [quizName, setQuizName] = useState<string>('READWRITE');
-    const [questions, setQuestions] = useState<Question[]>([]); // Changed to store all questions
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [questionTimes, setQuestionTimes] = useState<number[]>([]);
+    const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
+
+    // User state
+    const [userId, setUserId] = useState<string>('');
+    const [username, setUsername] = useState<string>('');
+    const [email, setEmail] = useState<string>('');
+    const [user, setUser] = useState<string>('');
+
+    // Timer state
     const [quizStartTime, setQuizStartTime] = useState<number | null>(null);
     const [questionStartTime, setQuestionStartTime] = useState<number | null>(null);
     const [totalTimeSpent, setTotalTimeSpent] = useState(0);
 
+    // Status state
+    const [saveStatus, setSaveStatus] = useState<string | null>(null);
+
+    // Fetch quiz data
     useEffect(() => {
         const fetchQuestions = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/readandwrite/questions');
-                console.log('Raw API response:', response.data);
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/readandwrite/get-all');
+                const quizzesData = response.data;
 
-                let allQuestions: Question[] = [];
-
-                if (Array.isArray(response.data)) {
-                    // If response is an array of quizzes, combine all questions
-                    response.data.forEach((quiz: Quiz) => {
-                        if (quiz && quiz.questions && Array.isArray(quiz.questions)) {
-                            allQuestions = [...allQuestions, ...quiz.questions];
-                        }
-                    });
-                } else if (response.data && typeof response.data === 'object' && response.data.questions) {
-                    // If response is a single quiz object
-                    allQuestions = response.data.questions;
+                if (!quizzesData || !Array.isArray(quizzesData)) {
+                    throw new Error("Invalid data format: Expected an array of quizzes");
                 }
 
-                // Validate the combined questions
-                if (allQuestions.length > 0 && allQuestions.every(q => q.scenario && Array.isArray(q.steps) && Array.isArray(q.correctOrder))) {
-                    setQuestions(allQuestions);
-                    setMarks(Array(allQuestions.length).fill(0));
-                    setQuestionTimes(Array(allQuestions.length).fill(0));
-                    setQuizStartTime(Date.now());
-                    setQuestionStartTime(Date.now());
-                } else {
-                    throw new Error('Invalid quiz data structure');
+                if (quizzesData.length === 0) {
+                    throw new Error("No quiz questions found");
                 }
 
-                setLoading(false);
-                console.log('Processed questions:', allQuestions);
+                // Check if correctAnswerOrder is a string, and split it only if needed
+                const validQuizzes = quizzesData.map(q => ({
+                    ...q,
+                    correctAnswerOrder: typeof q.correctAnswerOrder === 'string'
+                        ? q.correctAnswerOrder.split('') // Split string into an array of strings
+                        : q.correctAnswerOrder // If it's already an array, keep it as it is
+                })).filter(q =>
+                    q.question &&
+                    q.answer1 && q.answer2 && q.answer3 && q.answer4 &&
+                    q.correctAnswerOrder && Array.isArray(q.correctAnswerOrder)
+                );
+
+                if (validQuizzes.length === 0) {
+                    throw new Error("No valid quiz questions found");
+                }
+
+                setQuestions(validQuizzes);
+                setAnswers(Array(validQuizzes.length).fill([])); // Initialize as empty arrays
+                setTypedAnswers(Array(validQuizzes.length).fill('')); // Initialize typed answers
+                setIsLoading(false);
+                setQuizStartTime(Date.now());
+                setQuestionStartTime(Date.now());
             } catch (err: any) {
-                console.error('Error fetching quiz:', err);
-                setError('Failed to load quiz. Please try again.');
-                setLoading(false);
+                setLoadError(err.message || 'Failed to load quiz questions. Please try again later.');
+                setIsLoading(false);
             }
         };
 
         fetchQuestions();
 
-        const storedUser = localStorage.getItem('currentUser');
-        if (storedUser) {
-            try {
-                const userData: UserData = JSON.parse(storedUser);
-                setUser(userData.id || '');
-                setUserId(userData.userId || '');
-                setUsername(userData.userName || '');
-                setEmail(userData.email || '');
-            } catch (error) {
-                console.error('Error parsing user data:', error);
-            }
+        // Load user data
+        const userDataStr = localStorage.getItem('currentUser');
+        if (!userDataStr) {
+            setSaveStatus('Please log in to start the quiz.');
+            return;
+        }
+        try {
+            const userData: UserData = JSON.parse(userDataStr);
+            setUser(userData.id || '');
+            setUserId(userData.userId || '');
+            setUsername(userData.userName || '');
+            setEmail(userData.email || '');
+        } catch (err) {
+            setSaveStatus('Error loading user data. Please log in again.');
         }
     }, []);
 
-    useEffect(() => {
-        let timer: NodeJS.Timeout;
-        if (isTimerRunning) {
-            timer = setInterval(() => {
-                setTime(prev => prev + 1);
-            }, 1000);
-        }
-        return () => clearInterval(timer);
-    }, [isTimerRunning]);
+    // Create options array from answer fields
+    const currentQuestion = questions[currentQuestionIndex];
+    const currentOptions = currentQuestion ? [
+        currentQuestion.answer1,
+        currentQuestion.answer2,
+        currentQuestion.answer3,
+        currentQuestion.answer4
+    ].filter(Boolean) : [];
 
-    const handleStartTimer = () => {
-        if (!isTimerRunning) {
-            setIsTimerRunning(true);
-            setQuizStartTime(Date.now());
-            setQuestionStartTime(Date.now());
+    const handleAnswerSelect = (value: string, index: number): void => {
+        const newAnswers = [...answers];
+        const currentAnswer = newAnswers[currentQuestionIndex] || [];
+        if (currentAnswer.includes(value)) {
+            newAnswers[currentQuestionIndex] = currentAnswer.filter(ans => ans !== value);
+        } else {
+            newAnswers[currentQuestionIndex] = [...currentAnswer, String(index + 1)]; // Store index as string
+        }
+        setAnswers(newAnswers);
+        setSaveStatus(null);
+    };
+
+    const handleTypedAnswerChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const newTypedAnswers = [...typedAnswers];
+        newTypedAnswers[currentQuestionIndex] = e.target.value.replace(/[^1-4]/g, ''); // Only allow 1-4
+        setTypedAnswers(newTypedAnswers);
+    };
+
+    const checkAnswerWithBackend = async (quizId: string, selectedAnswer: string[]): Promise<boolean> => {
+        try {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/readandwrite/check-answer', {
+                quizId,
+                selectedOrder: selectedAnswer
+            });
+            return response.data.correct;
+        } catch (error) {
+            const correctOrder = currentQuestion?.correctAnswerOrder || [];
+            return JSON.stringify(correctOrder.sort()) === JSON.stringify(selectedAnswer.sort());
         }
     };
 
-    const handleOrderChange = (index: number, value: string) => {
-        const newOrder = [...stepsOrder];
-        const numValue = parseInt(value, 10);
+    const handleCheckAnswer = async () => {
+        if (!currentQuestion) return;
 
-        for (let i = 0; i < newOrder.length; i++) {
-            if (newOrder[i] === value && i !== index) {
-                newOrder[i] = '';
-            }
-        }
+        setIsCheckingAnswer(true);
 
-        if (numValue >= 1 && numValue <= 5) {
-            newOrder[index] = value;
-        } else if (value === '') {
-            newOrder[index] = '';
-        }
+        try {
+            const userAnswer = typedAnswers[currentQuestionIndex]
+                ? typedAnswers[currentQuestionIndex].split('') // Convert typed string to array
+                : answers[currentQuestionIndex] || []; // Fallback to selected answers
+            const currentTime = Date.now();
+            const timeSpent = questionStartTime ? Math.floor((currentTime - questionStartTime) / 1000) : 0;
 
-        setStepsOrder(newOrder);
-    };
+            const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
+            const marks = isCorrect ? 1 : 0;
 
-    const calculateMarksForCurrent = () => {
-        if (!questions || !questions[currentQuestionIndex]) {
-            return 0;
-        }
+            const questionResult: QuizResult = {
+                taskId: currentQuestion._id,
+                timeTaken: timeSpent,
+                marks,
+                userAnswer,
+                correctAnswer: currentQuestion.correctAnswerOrder
+            };
 
-        const userOrder = stepsOrder.map(val => parseInt(val) - 1).filter(val => !isNaN(val));
-        const currentQuestion = questions[currentQuestionIndex];
-        let correct = 0;
-
-        if (userOrder.length === 5) {
-            for (let i = 0; i < 5; i++) {
-                if (userOrder[i] === currentQuestion.correctOrder[i]) {
-                    correct++;
+            setResults(prev => {
+                const existingResultIndex = prev.findIndex(r => r.taskId === questionResult.taskId);
+                if (existingResultIndex !== -1) {
+                    const updatedResults = [...prev];
+                    updatedResults[existingResultIndex] = questionResult;
+                    return updatedResults;
                 }
-            }
+                return [...prev, questionResult];
+            });
+
+            setShowCurrentResult(true);
+        } catch (error) {
+            setSaveStatus('Error checking answer. Please try again.');
+        } finally {
+            setIsCheckingAnswer(false);
         }
-
-        return correct;
     };
 
-    const handleNext = () => {
-        if (!isTimerRunning || !questions || stepsOrder.filter(val => val).length !== 5) return;
+    const handleNext = async (): void => {
+        if (!showCurrentResult || !currentQuestion) return;
 
-        const currentTime = Date.now();
-        const timeSpent = Math.floor((currentTime - (questionStartTime || 0)) / 1000);
-        const newQuestionTimes = [...questionTimes];
-        newQuestionTimes[currentQuestionIndex] = timeSpent;
-        setQuestionTimes(newQuestionTimes);
-
-        const newMarks = [...marks];
-        newMarks[currentQuestionIndex] = calculateMarksForCurrent();
-        setMarks(newMarks);
-
-        setShowCurrentResult(true);
-    };
-
-    const proceedToNextQuestion = () => {
-        if (!questions) return;
+        setQuestionStartTime(Date.now());
 
         if (currentQuestionIndex < questions.length - 1) {
-            setStepsOrder(Array(5).fill(''));
-            setCurrentQuestionIndex(prev => prev + 1);
-            setQuestionStartTime(Date.now());
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
             setShowCurrentResult(false);
         } else {
-            handleSubmit();
+            setIsSubmitted(true);
+
+            const finalResults = [...results];
+            const existingResultIndex = finalResults.findIndex(r => r.taskId === currentQuestion._id);
+
+            if (existingResultIndex === -1) {
+                try {
+                    const userAnswer = typedAnswers[currentQuestionIndex]
+                        ? typedAnswers[currentQuestionIndex].split('')
+                        : answers[currentQuestionIndex] || [];
+                    const currentTime = Date.now();
+                    const timeSpent = questionStartTime ? Math.floor((currentTime - questionStartTime) / 1000) : 0;
+                    const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
+                    const marks = isCorrect ? 1 : 0;
+
+                    const finalResult: QuizResult = {
+                        taskId: currentQuestion._id,
+                        timeTaken: timeSpent,
+                        marks,
+                        userAnswer,
+                        correctAnswer: currentQuestion.correctAnswerOrder
+                    };
+
+                    finalResults.push(finalResult);
+                } catch (error) {
+                    console.error('Error checking final answer:', error);
+                }
+            }
+
+            const currentTime = Date.now();
+            const totalTime = quizStartTime ? Math.floor((currentTime - quizStartTime) / 1000) : 0;
+            setTotalTimeSpent(totalTime);
+
+            await saveQuizResults(finalResults, totalTime);
         }
     };
 
-    const handleSubmit = () => {
-        if (!questions || isSubmitted) return;
-
-        const currentTime = Date.now();
-        const timeSpent = Math.floor((currentTime - (questionStartTime || 0)) / 1000);
-        const newQuestionTimes = [...questionTimes];
-        newQuestionTimes[currentQuestionIndex] = timeSpent;
-        setQuestionTimes(newQuestionTimes);
-
-        const newMarks = [...marks];
-        newMarks[currentQuestionIndex] = calculateMarksForCurrent();
-        setMarks(newMarks);
-
-        calculateMarks(newMarks);
-    };
-
-    const calculateMarks = async (finalMarks: number[]) => {
+    const saveQuizResults = async (finalResults: QuizResult[], finalTotalTime: number) => {
         if (!user || !userId || !username || !email) {
-            setSaveStatus('Please log in to submit quiz results.');
+            setSaveStatus('Error: Please log in to submit quiz results.');
             return;
         }
 
-        const total = finalMarks.reduce((sum, mark) => sum + mark, 0);
-        const currentTime = Date.now();
-        const totalTime = Math.floor((currentTime - (quizStartTime || 0)) / 1000);
+        const totalMarks = finalResults.reduce((acc, r) => acc + r.marks, 0);
+        setTotalMarks(totalMarks);
 
-        setTotalMarks(total);
-        setTotalTimeSpent(totalTime);
-        setIsSubmitted(true);
-        setIsTimerRunning(false);
-        setShowResults(true);
-
-        const quizData = {
-            quizName,
+        const payload = {
+            quizName: "READWRITE",
             user,
             userId,
             username,
             email,
-            totalMarks: total,
-            totalTime: totalTime,
+            totalMarks,
+            participatedQuestions: questions.length,
+            totalTime: finalTotalTime,
             date: new Date().toISOString()
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/saveQuizResults', quizData, {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                timeout: 10000
+                    'Content-Type': 'application/json'
+                }
             });
 
-            if (response.status === 200 || response.status === 201) {
-                setSaveStatus('✅ Quiz results saved successfully!');
-            } else {
-                setSaveStatus('Quiz completed! (Unexpected response from server)');
-            }
+            setSaveStatus('✅ Quiz results saved successfully!');
         } catch (error: any) {
             setSaveStatus('❌ Error saving quiz results. Please try again.');
-            console.error('Error saving quiz results:', error.response?.data || error.message);
         }
     };
 
-    const resetQuiz = () => {
-        if (!questions) return;
-
-        setStepsOrder(Array(5).fill(''));
-        setMarks(Array(questions.length).fill(0));
-        setQuestionTimes(Array(questions.length).fill(0));
+    const resetQuiz = (): void => {
+        setAnswers(Array(questions.length).fill([]));
+        setTypedAnswers(Array(questions.length).fill(''));
+        setResults([]);
         setTotalMarks(0);
         setTotalTimeSpent(0);
         setIsSubmitted(false);
-        setShowResults(false);
-        setShowCurrentResult(false);
-        setTime(0);
-        setIsTimerRunning(false);
-        setSaveStatus(null);
         setCurrentQuestionIndex(0);
+        setShowCurrentResult(false);
+        setSaveStatus(null);
+        setIsCheckingAnswer(false);
         setQuizStartTime(Date.now());
         setQuestionStartTime(Date.now());
     };
 
-    const formatTime = (seconds: number) => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-    };
-
-    const getEncouragementMessage = () => {
-        if (!questions) return "";
-
-        const totalPossibleMarks = questions.length * 5;
-        const totalPercentage = (totalMarks / totalPossibleMarks) * 100;
-
-        if (totalPercentage === 100) return "🌟 Perfect! You're a sequencing master! 🌟";
-        if (totalPercentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
-        if (totalPercentage >= 60) return "👍 Good job! Keep practicing! 👍";
-        if (totalPercentage >= 40) return "😊 Nice try! Practice makes perfect! 😊";
+    const getEncouragementMessage = (): string => {
+        const percentage = (totalMarks / questions.length) * 100;
+        if (percentage === 100) return "🌟 Perfect! You're a read-write genius! 🌟";
+        if (percentage >= 80) return "🎉 Excellent work! Almost perfect! 🎉";
+        if (percentage >= 60) return "👍 Good job! Keep learning! 👍";
+        if (percentage >= 40) return "😊 Nice try! Practice makes perfect! 😊";
         return "🌈 Don't worry! Learning is fun! Try again! 🌈";
     };
 
-    const getScoreColor = (score: number = totalMarks) => {
-        if (!questions) return "text-gray-500";
-
-        const totalPossibleMarks = questions.length * 5;
-        const totalPercentage = (score / totalPossibleMarks) * 100;
-
-        if (totalPercentage >= 80) return "text-green-600";
-        if (totalPercentage >= 60) return "text-yellow-600";
+    const getScoreColor = (): string => {
+        const percentage = (totalMarks / questions.length) * 100;
+        if (percentage >= 80) return "text-green-600";
+        if (percentage >= 60) return "text-yellow-600";
         return "text-red-500";
     };
 
-    if (loading) {
+    const formatTime = (seconds: number): string => {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    if (isLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
                 <div className="text-center">
@@ -319,12 +333,12 @@ const ReadWrite: React.FC = () => {
         );
     }
 
-    if (error) {
+    if (loadError) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 flex items-center justify-center">
                 <div className="text-center bg-white/90 rounded-3xl p-8 border-4 border-red-400">
                     <div className="text-6xl mb-4">❌</div>
-                    <p className="text-2xl text-red-600 font-bold mb-4">{error}</p>
+                    <p className="text-2xl text-red-600 font-bold mb-4">{loadError}</p>
                     <Link to="/">
                         <button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full">
                             Back to Home
@@ -351,7 +365,7 @@ const ReadWrite: React.FC = () => {
         );
     }
 
-    const currentQuestion = questions[currentQuestionIndex];
+    const currentResult = results.find(r => r.taskId === currentQuestion?._id);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 relative overflow-hidden">
@@ -373,6 +387,9 @@ const ReadWrite: React.FC = () => {
                         <p className="text-lg font-semibold text-purple-800">
                             ⏱️ Time Elapsed: {formatTime(Math.floor((Date.now() - quizStartTime) / 1000))}
                         </p>
+                        <p className="text-md text-gray-600">
+                            Question {currentQuestionIndex + 1} of {questions.length}
+                        </p>
                     </div>
                 )}
 
@@ -380,7 +397,7 @@ const ReadWrite: React.FC = () => {
                     <div className="relative">
                         <div className="text-6xl mb-4 animate-bounce">🧠</div>
                         <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">
-                            🪄 {quizName} - Read and Write
+                            🪄 Read and Write Quiz
                         </h1>
                         <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
                         <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
@@ -390,19 +407,22 @@ const ReadWrite: React.FC = () => {
                             Hi {username || 'Student'}! 👋 Welcome to the Read and Write Quiz!
                         </p>
                         <p className="text-lg text-blue-700">
-                            🌟 Put the steps in the correct order to help complete each scenario! 🌟
+                            🌟 Select the correct answer order or type it (e.g., 1342)! 🌟
                         </p>
-                        <p className="text-md text-gray-600">
-                            Question {currentQuestionIndex + 1} of {questions.length}
-                            {isSubmitted && " - Quiz Completed!"}
-                        </p>
+                        {!isSubmitted && (
+                            <p className="text-lg font-bold mt-2">
+                                Current Score: <span className={getScoreColor()}>
+                                    {results.reduce((acc, r) => acc + r.marks, 0)} / {questions.length}
+                                </span>
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300 flex-1 flex flex-col items-center">
-                    {!showResults ? (
-                        <div className="space-y-8 flex-1 w-full">
-                            <div className="bg-white p-4 rounded-xl border-2 border-purple-300 mb-6">
+                    {!isSubmitted ? (
+                        <>
+                            <div className="bg-white p-4 rounded-xl border-2 border-purple-300 mb-6 w-full max-w-4xl">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-lg font-bold text-purple-800">Progress</span>
                                     <span className="text-lg font-bold text-purple-800">
@@ -417,176 +437,153 @@ const ReadWrite: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-8 border-2 border-dashed border-blue-300">
-                                <div className="mb-6 text-center">
-                                    <h2 className="text-3xl font-bold text-purple-800 bg-yellow-200 p-4 rounded-lg inline-block">
-                                        Scenario: {currentQuestion.scenario}
-                                    </h2>
-                                </div>
-                                <div className="flex items-center mb-4 justify-center">
-                                    <span className="text-4xl mr-4">📝</span>
-                                    <p className="text-2xl font-bold text-purple-800 text-center">
-                                        Put (1-5) Numbers in correct order in the given boxes
-                                    </p>
-                                </div>
-                                <div className="mt-6 space-y-4">
-                                    {currentQuestion.steps.map((step: string, index: number) => (
-                                        <div key={index} className="flex items-center gap-4 p-3 bg-white rounded-lg shadow-sm">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max="5"
-                                                value={stepsOrder[index]}
-                                                onChange={(e) => handleOrderChange(index, e.target.value)}
-                                                className="w-16 p-3 border-2 border-yellow-400 rounded-lg text-center font-bold text-lg"
-                                                disabled={isSubmitted || showCurrentResult}
-                                                placeholder="?"
-                                            />
-                                            <p className="text-lg text-gray-700 flex-1">{step}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            <div className="space-y-8 w-full max-w-4xl">
+                                <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl p-8 border-2 border-dashed border-blue-300 transform hover:scale-105 transition-all duration-300">
+                                    <div className="flex items-center mb-4 justify-center">
+                                        <span className="text-4xl mr-4">📝</span>
+                                        <p className="text-2xl font-bold text-purple-800 text-center">
+                                            {currentQuestion.question}
+                                        </p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mt-6">
+                                        {currentOptions.map((option, idx) => {
+                                            const isSelected = answers[currentQuestionIndex]?.includes(String(idx + 1));
 
-                            {showCurrentResult && (
-                                <div className="mt-6 p-6 rounded-xl border-2 bg-green-100 border-green-400">
-                                    <p className="text-2xl font-bold text-green-800 mb-4">
-                                        Question {currentQuestionIndex + 1} Result
-                                    </p>
-                                    <p className={`text-xl font-bold ${getScoreColor(marks[currentQuestionIndex])}`}>
-                                        Score: {marks[currentQuestionIndex]} / 5
-                                    </p>
-                                    <p className="text-lg text-gray-700">
-                                        Time: {formatTime(questionTimes[currentQuestionIndex] || 0)}
-                                    </p>
-                                    <div className="mt-4">
-                                        {currentQuestion.steps.map((step: string, stepIndex: number) => (
-                                            <div
-                                                key={stepIndex}
-                                                className={`p-2 rounded mb-2 ${
-                                                    parseInt(stepsOrder[stepIndex]) - 1 === currentQuestion.correctOrder[stepIndex]
-                                                        ? 'bg-green-200'
-                                                        : 'bg-red-200'
-                                                }`}
-                                            >
-                                                <p>Step {stepIndex + 1}: {step}</p>
-                                                <p>
-                                                    <strong>Your Order:</strong> {stepsOrder[stepIndex] || 'No order'}
-                                                </p>
-                                                <p>
-                                                    <strong>Correct Order:</strong> {currentQuestion.correctOrder[stepIndex] + 1}
-                                                </p>
-                                            </div>
-                                        ))}
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleAnswerSelect(option, idx)}
+                                                    className={`bg-gradient-to-r from-pink-200 to-purple-200 px-6 py-4 rounded-full text-lg font-medium text-purple-800 border-2 border-purple-300 hover:from-pink-300 hover:to-purple-300 transition-all duration-200 ${
+                                                        isSelected ? 'from-purple-300 to-pink-300 ring-4 ring-purple-400' : ''
+                                                    }`}
+                                                    disabled={isCheckingAnswer}
+                                                >
+                                                    {String.fromCharCode(65 + idx)}. {option}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="mt-6">
+                                        <label htmlFor="answerOrder" className="block text-lg font-semibold text-purple-800 mb-2">
+                                            Type Answer Order (e.g., 1342):
+                                        </label>
+                                        <input
+                                            id="answerOrder"
+                                            type="text"
+                                            value={typedAnswers[currentQuestionIndex] || ''}
+                                            onChange={handleTypedAnswerChange}
+                                            className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                                            placeholder="Enter order (e.g., 1342)"
+                                            disabled={isCheckingAnswer}
+                                        />
                                     </div>
                                 </div>
-                            )}
 
-                            <div className="text-center mb-6 bg-blue-100 p-6 rounded-xl">
-                                <div className="mb-4">
-                                    <span className="text-3xl mr-6 font-bold text-blue-800">
-                                        ⏱️ Time: {formatTime(time)}
-                                    </span>
+                                {showCurrentResult && currentResult && (
+                                    <div className="mt-6 p-6 rounded-xl border-2 bg-green-100 border-green-400">
+                                        <p className="text-2xl font-bold text-green-800 mb-4">
+                                            Question {currentQuestionIndex + 1} Result
+                                        </p>
+                                        <p className={`text-xl font-bold ${currentResult.marks > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                            Score: {currentResult.marks} / 1
+                                        </p>
+                                        <p className="text-lg text-gray-700">
+                                            Time: {formatTime(currentResult.timeTaken)}
+                                        </p>
+                                        <div className="mt-4">
+                                            <div className={`p-4 rounded mb-2 ${
+                                                currentResult.marks > 0
+                                                    ? 'bg-green-200'
+                                                    : 'bg-red-200'
+                                            }`}>
+                                                <p className="font-semibold">{currentQuestion.question}</p>
+                                                <p className="mt-2">
+                                                    <strong>Your Answer:</strong> {currentResult.userAnswer.join(', ') || 'No answer'}
+                                                </p>
+                                                <p>
+                                                    <strong>Correct Answer:</strong> {currentQuestion.correctAnswerOrder.join(', ')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-center mt-10">
+                                    {showCurrentResult ? (
+                                        <button
+                                            onClick={handleNext}
+                                            className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
+                                        >
+                                            {currentQuestionIndex < questions.length - 1 ? "Next Question ➡️" : "Finish Quiz 🎯"}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleCheckAnswer} // Changed from onChange to onClick
+                                            disabled={!answers[currentQuestionIndex]?.length && !typedAnswers[currentQuestionIndex] || isCheckingAnswer}
+                                            className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
+                                        >
+                                            {isCheckingAnswer ? "Checking... ⏳" : "Check Answer ➡️"}
+                                        </button>
+                                    )}
                                 </div>
-                                <button
-                                    onClick={handleStartTimer}
-                                    disabled={isTimerRunning}
-                                    className="bg-green-500 text-white px-8 py-4 rounded-full disabled:opacity-50 disabled:bg-gray-300 hover:bg-green-600 transition-colors font-bold text-xl"
-                                >
-                                    {isTimerRunning ? "⏰ Timer Running..." : "🚀 Start Quiz"}
-                                </button>
-                            </div>
 
-                            <div className="flex justify-center gap-4 mt-10">
-                                {showCurrentResult ? (
-                                    <button
-                                        onClick={proceedToNextQuestion}
-                                        className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 border-4 border-white"
-                                    >
-                                        {currentQuestionIndex < questions.length - 1 ? "Next Question ➡️" : "Submit Quiz 🎯"}
-                                    </button>
-                                ) : currentQuestionIndex < questions.length - 1 ? (
-                                    <button
-                                        onClick={handleNext}
-                                        disabled={!isTimerRunning || stepsOrder.filter(val => val).length !== 5}
-                                        className="bg-gradient-to-r from-blue-400 to-purple-500 hover:from-blue-500 hover:to-purple-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white"
-                                    >
-                                        Check Answer ➡️
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={handleNext}
-                                        disabled={!isTimerRunning || stepsOrder.filter(val => val).length !== 5 || isSubmitted}
-                                        className="bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-bold py-6 px-12 rounded-full text-3xl shadow-lg transform hover:scale-110 transition-all duration-300 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed disabled:transform-none border-4 border-white animate-pulse"
-                                    >
-                                        Check Answer 🎯
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="mt-6 text-center bg-yellow-100 p-4 rounded-xl border-2 border-yellow-300">
-                                <p className="text-lg text-yellow-800 font-semibold">
-                                    💡 Fill all 5 boxes with numbers 1-5 to check your answer
-                                </p>
-                                {currentQuestionIndex === questions.length - 1 && !showCurrentResult && (
-                                    <p className="text-lg text-green-800 font-bold mt-2">
-                                        🎯 This is the final question. Check your answer before submitting!
+                                <div className="mt-6 text-center bg-yellow-100 p-4 rounded-xl border-2 border-yellow-300">
+                                    <p className="text-lg text-yellow-800 font-semibold">
+                                        💡 Select or type the correct answer order to check your response
                                     </p>
-                                )}
+                                    {currentQuestionIndex === questions.length - 1 && !showCurrentResult && (
+                                        <p className="text-lg text-green-800 font-bold mt-2">
+                                            🎯 This is the final question. Check your answer before finishing!
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        </>
                     ) : (
-                        <div className="text-center space-y-8 flex-1 w-full max-w-4xl">
+                        <div className="text-center space-y-8 w-full max-w-4xl">
                             <div className="bg-gradient-to-r from-yellow-200 to-pink-200 rounded-2xl p-8 border-4 border-yellow-400">
                                 <h2 className="text-5xl font-bold text-purple-800 mb-6">🎊 Quiz Results! 🎊</h2>
                                 <div className={`text-8xl font-bold mb-6 ${getScoreColor()}`}>
-                                    {totalMarks} / {questions.length * 5}
+                                    {totalMarks} / {questions.length}
                                 </div>
                                 <div className="text-3xl font-bold text-indigo-700 mb-4">
                                     {getEncouragementMessage()}
                                 </div>
-                                <div className="text-xl text-gray-700">
+                                <div className="text-xl text-purple-700 mt-4">
                                     ⏱️ Total Time: {formatTime(totalTimeSpent)}
                                 </div>
                             </div>
 
-                            <div className="space-y-4 max-h-96 overflow-y-auto">
-                                {questions.map((question: Question, index: number) => {
-                                    const timeSpent = questionTimes[index] || 0;
-                                    const questionMarks = marks[index] || 0;
+                            <div className="space-y-6 overflow-y-auto w-full">
+                                <h3 className="text-2xl font-semibold text-purple-800 mb-4">Detailed Results</h3>
+                                {results.map((result, idx) => {
+                                    const quiz = questions.find(q => q._id === result.taskId);
+                                    const isCorrect = result.marks === 1;
 
                                     return (
-                                        <div key={index} className={`p-6 rounded-xl border-2 ${questionMarks === 5 ? 'bg-green-100 border-green-400' : questionMarks >= 3 ? 'bg-yellow-100 border-yellow-400' : 'bg-red-100 border-red-400'}`}>
-                                            <p className="font-semibold text-gray-800 text-lg mb-2">
-                                                Question {index + 1}: {question.scenario}
+                                        <div key={result.taskId} className={`p-6 rounded-xl border-2 ${
+                                            isCorrect ? 'bg-green-100 border-green-400' : 'bg-red-100 border-red-400'
+                                        } text-center mb-4`}>
+                                            <p className="font-semibold text-gray-800 text-xl mb-3">
+                                                Q{idx + 1}: {quiz?.question || 'Question not found'}
                                             </p>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <p className={`text-lg font-bold ${questionMarks === 5 ? 'text-green-600' : questionMarks >= 3 ? 'text-yellow-600' : 'text-red-500'}`}>
-                                                    Score: {questionMarks} / 5
-                                                </p>
-                                                <p className="text-lg text-gray-700">
-                                                    Time: {formatTime(timeSpent)}
-                                                </p>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 justify-items-center">
+                                                <div className="text-lg">
+                                                    <strong>Your answer:</strong> {result.userAnswer.join(', ') || 'No answer'}
+                                                </div>
+                                                <div className="text-lg">
+                                                    <strong>Correct answer:</strong> {quiz?.correctAnswerOrder.join(', ') || 'N/A'}
+                                                </div>
+                                                <div className="text-lg">
+                                                    <strong>Time:</strong> {formatTime(result.timeTaken)}
+                                                </div>
                                             </div>
                                             <div className="mt-4">
-                                                {question.steps.map((step: string, stepIndex: number) => (
-                                                    <div
-                                                        key={stepIndex}
-                                                        className={`p-2 rounded mb-2 ${
-                                                            parseInt(stepsOrder[stepIndex]) - 1 === question.correctOrder[stepIndex]
-                                                                ? 'bg-green-200'
-                                                                : 'bg-red-200'
-                                                        }`}
-                                                    >
-                                                        <p>Step {stepIndex + 1}: {step}</p>
-                                                        <p>
-                                                            <strong>Your Order:</strong> {stepsOrder[stepIndex] || 'No order'}
-                                                        </p>
-                                                        <p>
-                                                            <strong>Correct Order:</strong> {question.correctOrder[stepIndex] + 1}
-                                                        </p>
-                                                    </div>
-                                                ))}
+                                                {isCorrect ? (
+                                                    <span className="text-green-600 font-bold text-xl">✅ Correct!</span>
+                                                ) : (
+                                                    <span className="text-red-600 font-bold text-xl">❌ Incorrect</span>
+                                                )}
                                             </div>
                                         </div>
                                     );

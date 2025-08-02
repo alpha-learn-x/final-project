@@ -3,147 +3,47 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Home, Save } from 'lucide-react';
 import Header from "@/components/Header.tsx";
-
-interface Question {
-  id: number;
-  text: string;
-  pauseAt: number;
-  answer: string;
-  options: string[];
-}
-
-interface Task {
-  id: number;
-  youtubeUrl: string;
-  questions: Question[];
-}
-
-interface QuizPayload {
-  quizName: string;
-  tasks: Task[];
-}
+import { Button } from "@/components/ui/button";
 
 const SaveVisualQuiz: React.FC = () => {
   const [quizName, setQuizName] = useState('VISUAL');
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      youtubeUrl: '',
-      questions: [
-        {
-          id: 1,
-          text: '',
-          pauseAt: 0,
-          answer: '',
-          options: ['', '', '', '']
-        }
-      ]
-    }
-  ]);
-
+  const [question, setQuestion] = useState('');
+  const [answer1, setAnswer1] = useState('');
+  const [answer2, setAnswer2] = useState('');
+  const [answer3, setAnswer3] = useState('');
+  const [answer4, setAnswer4] = useState('');
+  const [correctAnswer, setCorrectAnswer] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [pauseAt, setPauseAt] = useState('');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle quiz name
-  const handleQuizNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setQuizName(e.target.value);
-  };
-
-  // Handle YouTube URL for a task
-  const handleYoutubeUrlChange = (taskIndex: number, value: string) => {
-    setTasks(prev => {
-      const updated = [...prev];
-      updated[taskIndex].youtubeUrl = value;
-      return updated;
-    });
-  };
-
-  // Handle question change inside a task
-  const handleQuestionChange = (taskIndex: number, questionIndex: number, field: string, value: string | number) => {
-    setTasks(prev => {
-      const updated = [...prev];
-      updated[taskIndex].questions[questionIndex] = {
-        ...updated[taskIndex].questions[questionIndex],
-        [field]: value
-      };
-      return updated;
-    });
-  };
-
-  // Handle options change
-  const handleOptionChange = (taskIndex: number, questionIndex: number, optionIndex: number, value: string) => {
-    setTasks(prev => {
-      const updated = [...prev];
-      const options = updated[taskIndex].questions[questionIndex].options.map((opt, i) =>
-          i === optionIndex ? value : opt
-      );
-      updated[taskIndex].questions[questionIndex].options = options;
-      return updated;
-    });
-  };
-
-  const addTask = () => {
-    setTasks(prev => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        youtubeUrl: '',
-        questions: [
-          {
-            id: 1,
-            text: '',
-            pauseAt: 0,
-            answer: '',
-            options: ['', '', '', '']
-          }
-        ]
-      }
-    ]);
-  };
-
-  const addQuestion = (taskIndex: number) => {
-    setTasks(prev => {
-      const updated = [...prev];
-      updated[taskIndex].questions.push({
-        id: updated[taskIndex].questions.length + 1,
-        text: '',
-        pauseAt: 0,
-        answer: '',
-        options: ['', '', '', '']
-      });
-      return updated;
-    });
-  };
-
-  const removeQuestion = (taskIndex: number, questionIndex: number) => {
-    setTasks(prev => {
-      const updated = [...prev];
-      updated[taskIndex].questions.splice(questionIndex, 1);
-      updated[taskIndex].questions = updated[taskIndex].questions.map((q, idx) => ({ ...q, id: idx + 1 }));
-      return updated;
-    });
-  };
-
-  const validateQuiz = (): boolean => {
+  const validateForm = (): boolean => {
     if (!quizName.trim()) {
       setError('Quiz name is required');
       return false;
     }
-
-    for (const task of tasks) {
-      if (!task.youtubeUrl.trim()) {
-        setError('Each task must have a YouTube URL');
-        return false;
-      }
-
-      for (const question of task.questions) {
-        if (!question.text.trim() || !question.answer.trim() || question.pauseAt < 0 || question.options.some(opt => !opt.trim())) {
-          setError('All questions must be valid and fully filled');
-          return false;
-        }
-      }
+    if (!question.trim()) {
+      setError('Question is required');
+      return false;
     }
-
+    if (!answer1.trim() || !answer2.trim() || !answer3.trim() || !answer4.trim()) {
+      setError('All answer options must be filled');
+      return false;
+    }
+    if (!correctAnswer.trim()) {
+      setError('Correct answer is required');
+      return false;
+    }
+    if (!youtubeUrl.trim()) {
+      setError('YouTube URL is required');
+      return false;
+    }
+    const pauseAtNum = parseFloat(pauseAt);
+    if (!pauseAt || isNaN(pauseAtNum) || pauseAtNum <= 0) {
+      setError('Pause time must be a positive number');
+      return false;
+    }
     return true;
   };
 
@@ -152,136 +52,184 @@ const SaveVisualQuiz: React.FC = () => {
     setError(null);
     setSaveStatus(null);
 
-    if (!validateQuiz()) return;
-
-    const payload: QuizPayload = { quizName, tasks };
+    if (!validateForm()) return;
 
     try {
-      const res = await axios.post('http://localhost:5000/api/v1/quizzes/visual/questions', payload);
+      const payload = {
+        quizName: quizName.trim(),
+        question: question.trim(),
+        answer1: answer1.trim(),
+        answer2: answer2.trim(),
+        answer3: answer3.trim(),
+        answer4: answer4.trim(),
+        correctAnswer: correctAnswer.trim(),
+        youtubeUrl: youtubeUrl.trim(),
+        pauseAt: parseFloat(pauseAt)
+      };
+
+      const res = await axios.post('http://localhost:5000/api/v1/quizzes/visual/create', payload);
+
       setSaveStatus('Quiz saved successfully!');
-      console.log(res.data);
+      setQuizName('VISUAL');
+      setQuestion('');
+      setAnswer1('');
+      setAnswer2('');
+      setAnswer3('');
+      setAnswer4('');
+      setCorrectAnswer('');
+      setYoutubeUrl('');
+      setPauseAt('');
     } catch (err: any) {
-      setError('Failed to save quiz: ' + err.message);
+      setError('Failed to save quiz: ' + (err.response?.data?.error || err.message));
     }
   };
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 p-10">
+      <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400 p-10 relative overflow-hidden">
+        <div className="absolute top-10 left-10 text-4xl animate-bounce">🌟</div>
+        <div className="absolute top-20 right-20 text-3xl animate-ping">⭐</div>
+        <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
+
         <Header />
 
-        {saveStatus && <div className="p-4 mb-4 bg-green-200 text-green-800 rounded">{saveStatus}</div>}
-        {error && <div className="p-4 mb-4 bg-red-200 text-red-800 rounded">{error}</div>}
+        <div className="container mx-auto px-4 py-12 max-w-3xl">
+          {saveStatus && <div className="mb-4 p-4 rounded-lg bg-green-100 text-green-700">{saveStatus}</div>}
+          {error && <div className="mb-4 p-4 rounded-lg bg-red-100 text-red-700">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg max-w-5xl mx-auto">
-          <div className="mb-6">
-            <label className="block font-bold mb-2 text-purple-800">Quiz Name</label>
-            <input
-                type="text"
-                value={quizName}
-                onChange={handleQuizNameChange}
-                className="w-full p-3 border rounded-lg"
-            />
+          <div className="text-center mb-16">
+            <div className="relative">
+              <div className="text-6xl mb-4 animate-bounce">👁️</div>
+              <h1 className="text-6xl font-bold text-white mb-6 animate-pulse">👓 Create Visual Quiz</h1>
+              <div className="absolute -top-8 -left-8 text-5xl animate-spin">⭐</div>
+              <div className="absolute -top-8 -right-8 text-5xl animate-spin">⭐</div>
+            </div>
+            <div className="bg-white/90 rounded-3xl p-6 border-4 border-yellow-400 shadow-2xl">
+              <p className="text-2xl text-purple-800 font-bold mb-4">Create a new visual quiz question</p>
+            </div>
           </div>
 
-          {tasks.map((task, taskIndex) => (
-              <div key={taskIndex} className="mb-10 border-2 border-yellow-300 p-6 rounded-xl bg-yellow-50">
-                <h2 className="text-xl font-bold mb-4 text-purple-700">Task {taskIndex + 1}</h2>
+          <form onSubmit={handleSubmit} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-10 border-4 border-yellow-300">
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Quiz Name</label>
+              <input
+                  type="text"
+                  value={quizName}
+                  onChange={(e) => setQuizName(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter quiz name (e.g., VISUAL)"
+              />
+            </div>
 
-                <div className="mb-4">
-                  <label className="block mb-2 text-gray-700">YouTube URL</label>
-                  <input
-                      type="text"
-                      value={task.youtubeUrl}
-                      onChange={(e) => handleYoutubeUrlChange(taskIndex, e.target.value)}
-                      className="w-full p-3 border rounded-lg"
-                  />
-                </div>
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Question</label>
+              <input
+                  type="text"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter question"
+              />
+            </div>
 
-                {task.questions.map((question, qIndex) => (
-                    <div key={qIndex} className="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg">
-                      <h4 className="font-semibold mb-2 text-blue-800">Question {qIndex + 1}</h4>
-                      <input
-                          type="text"
-                          placeholder="Question Text"
-                          value={question.text}
-                          onChange={(e) => handleQuestionChange(taskIndex, qIndex, 'text', e.target.value)}
-                          className="w-full mb-2 p-2 border rounded"
-                      />
-                      <input
-                          type="number"
-                          placeholder="Pause At"
-                          value={question.pauseAt}
-                          onChange={(e) => handleQuestionChange(taskIndex, qIndex, 'pauseAt', parseInt(e.target.value))}
-                          className="w-full mb-2 p-2 border rounded"
-                      />
-                      <input
-                          type="text"
-                          placeholder="Correct Answer"
-                          value={question.answer}
-                          onChange={(e) => handleQuestionChange(taskIndex, qIndex, 'answer', e.target.value)}
-                          className="w-full mb-2 p-2 border rounded"
-                      />
-                      {question.options.map((option, optIndex) => (
-                          <input
-                              key={optIndex}
-                              type="text"
-                              placeholder={`Option ${optIndex + 1}`}
-                              value={option}
-                              onChange={(e) => handleOptionChange(taskIndex, qIndex, optIndex, e.target.value)}
-                              className="w-full mb-2 p-2 border rounded"
-                          />
-                      ))}
-                      {task.questions.length > 1 && (
-                          <button
-                              type="button"
-                              onClick={() => removeQuestion(taskIndex, qIndex)}
-                              className="text-red-600 mt-2"
-                          >
-                            Remove Question
-                          </button>
-                      )}
-                    </div>
-                ))}
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Answer 1</label>
+              <input
+                  type="text"
+                  value={answer1}
+                  onChange={(e) => setAnswer1(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Answer 1"
+              />
+            </div>
 
-                <button
-                    type="button"
-                    onClick={() => addQuestion(taskIndex)}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                >
-                  ➕ Add Question
-                </button>
-              </div>
-          ))}
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Answer 2</label>
+              <input
+                  type="text"
+                  value={answer2}
+                  onChange={(e) => setAnswer2(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Answer 2"
+              />
+            </div>
 
-          <div className="flex justify-between items-center mt-10">
-            <button
-                type="button"
-                onClick={addTask}
-                className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600"
-            >
-              ➕ Add Task
-            </button>
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Answer 3</label>
+              <input
+                  type="text"
+                  value={answer3}
+                  onChange={(e) => setAnswer3(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Answer 3"
+              />
+            </div>
 
-            <button
-                type="submit"
-                className="bg-purple-600 text-white px-10 py-4 rounded-full text-lg hover:bg-purple-700"
-            >
-              <Save className="inline mr-2" />
-              Save Quiz
-            </button>
-          </div>
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Answer 4</label>
+              <input
+                  type="text"
+                  value={answer4}
+                  onChange={(e) => setAnswer4(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Answer 4"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Correct Answer</label>
+              <input
+                  type="text"
+                  value={correctAnswer}
+                  onChange={(e) => setCorrectAnswer(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Correct Answer"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">YouTube URL</label>
+              <input
+                  type="text"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=abc123xyz89)"
+              />
+            </div>
+
+            <div className="mb-8">
+              <label className="block text-lg font-bold text-purple-800 mb-2">Pause At (seconds)</label>
+              <input
+                  type="number"
+                  value={pauseAt}
+                  onChange={(e) => setPauseAt(e.target.value)}
+                  className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
+                  placeholder="Enter pause time in seconds"
+                  min="0"
+                  step="0.1"
+              />
+            </div>
+
+            <div className="flex justify-between mb-8">
+              <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-purple-400 to-pink-500 hover:from-purple-500 hover:to-pink-600 text-white font-bold py-6 px-12 rounded-full text-xl shadow-lg transform hover:scale-110 transition-all duration-300"
+              >
+                <Save className="inline mr-2" />
+                Save Quiz
+              </Button>
+            </div>
+          </form>
 
           <div className="flex justify-center mt-8">
             <Link to="/">
-              <button
-                  className="bg-gray-700 text-white px-6 py-3 rounded-full shadow-lg hover:bg-gray-800"
-              >
-                <Home className="mr-2 h-5 w-5" />
-                Back Home
-              </button>
+              <Button className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                <Home className="mr-3 h-5 w-5" />
+                🏠 Home
+              </Button>
             </Link>
           </div>
-        </form>
+        </div>
       </div>
   );
 };

@@ -35,6 +35,13 @@ interface QuizResult {
     username: string;
 }
 
+interface UserQuizData {
+    userId: string;
+    username: string;
+    email: string;
+    results: string[]; // e.g., ["AUDITORY 75.0%", "KINESTHETIC 50.0%", ...]
+}
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const [isSoundEnabled, setIsSoundEnabled] = useState(false);
@@ -44,6 +51,7 @@ const Dashboard = () => {
     const [error, setError] = useState<string | null>(null);
     const [userQuizError, setUserQuizError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [userQuizData, setUserQuizData] = useState<UserQuizData | null>(null);
     const itemsPerPage = 10; // Number of results per page
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const userName = currentUser.userName || 'User';
@@ -97,13 +105,27 @@ const Dashboard = () => {
                 return;
             }
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/get-all-quiz-results', {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/results/percentages', {
                     params: isTeacher ? {} : { searchText: userName },
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
-                setQuizResults(response.data.data);
+                console.log('Quiz results response:', response.data);
+                // Transform percentage data into QuizResult format
+                const transformedData = response.data.flatMap((item: UserQuizData) =>
+                    item.results.map((result: string) => {
+                        const [quizName, percentage] = result.split(' ');
+                        return {
+                            _id: `${item.userId}-${quizName}`, // Generate a unique _id
+                            quizName: quizName,
+                            totalMarks: parseFloat(percentage) || 0, // Use percentage as a proxy for totalMarks
+                            date: new Date().toISOString(), // Use current date as a fallback
+                            username: item.username
+                        };
+                    })
+                );
+                setQuizResults(transformedData);
             } catch (error: any) {
                 console.error('Error fetching quiz results:', error.response?.data || error.message);
                 setError(error.response?.data?.message || 'Failed to load quiz results. Please try again later.');
@@ -120,12 +142,17 @@ const Dashboard = () => {
                 return;
             }
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/user-quiz-totals', {
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/results/percentages', {
                     headers: {
                         Authorization: `Bearer ${token}`
                     }
                 });
                 console.log('User quiz totals response:', response.data);
+
+                // Filter results for the current user
+                const userId = currentUser.userId;
+                const userData = response.data.find((item: UserQuizData) => item.userId === userId);
+                setUserQuizData(userData || null);
             } catch (error: any) {
                 console.error('Error fetching user quiz totals:', error.response?.data || error.message);
                 setUserQuizError(error.response?.data?.message || 'Failed to load quiz totals. Please try again later.');
@@ -142,10 +169,10 @@ const Dashboard = () => {
         if (isStudent) {
             fetchUserQuizTotals();
         }
-    }, [userName, isTeacher, isStudent]);
+    }, [userName, isTeacher, isStudent, currentUser.userId]);
 
     const filteredQuizResults = quizResults.filter((result) =>
-        result.quizName.toLowerCase().includes(searchQuery.toLowerCase())
+        result && result.quizName && result.quizName.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Pagination logic
