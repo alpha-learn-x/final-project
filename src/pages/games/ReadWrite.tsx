@@ -273,7 +273,7 @@ const ReadWrite: React.FC = () => {
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results/create', payload, {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
