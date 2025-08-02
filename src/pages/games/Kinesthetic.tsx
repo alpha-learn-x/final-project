@@ -146,7 +146,6 @@ const Kinesthetic: React.FC = () => {
             [sound]: 'No answer',
         }));
     };
-sss
     const isComplete = () => {
         const currentQuiz = quizzes[currentQuizIndex];
         if (!currentQuiz) return false;
