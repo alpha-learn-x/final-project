@@ -11,7 +11,7 @@ interface MatchItem {
     _id: string;
 }
 
-interface KinestheticQuiz {
+interface Rec_KinestheticQuiz {
     _id: string;
     quizName: string;
     question: string;
@@ -35,8 +35,8 @@ interface QuizResult {
     correctAnswer: { [key: string]: string };
 }
 
-const Kinesthetic: React.FC = () => {
-    const [quizzes, setQuizzes] = useState<KinestheticQuiz[]>([]);
+const Rec_Kinesthetic: React.FC = () => {
+    const [quizzes, setQuizzes] = useState<Rec_KinestheticQuiz[]>([]);
     const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
     const [time, setTime] = useState(0);
     const [draggedItem, setDraggedItem] = useState<MatchItem | null>(null);
@@ -59,7 +59,7 @@ const Kinesthetic: React.FC = () => {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const response = await axios.get('http://localhost:5000/api/v1/quizzes/kinesthetic/get-all');
+                const response = await axios.get('http://localhost:5000/api/v1/quizzes/rec-kinesthetic/get-all');
                 console.log('Quizzes data:', response.data);
 
                 if (Array.isArray(response.data) && response.data.length > 0) {
@@ -155,7 +155,7 @@ const Kinesthetic: React.FC = () => {
 
     const checkAnswerWithBackend = async (quizId: string, userAnswer: { [key: string]: string }): Promise<boolean> => {
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/kinesthetic/check-answer', {
+            const response = await axios.post('http://localhost:5000/api/v1/quizzes/rec-kinesthetic/check-answer', {
                 quizId,
                 userPairs: userAnswer,
             });
@@ -222,7 +222,7 @@ const Kinesthetic: React.FC = () => {
         setTotalMarks(correctCount);
 
         const payload = {
-            quizName: "KINESTHETIC",
+            quizName: "Rec_KINESTHETIC",
             user,
             userId,
             username,
@@ -234,7 +234,7 @@ const Kinesthetic: React.FC = () => {
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
+            const response = await axios.post('http://localhost:5000/api/v1/rec-quizzes/results', payload, {
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -282,7 +282,7 @@ const Kinesthetic: React.FC = () => {
         return "text-red-500";
     };
 
-    const getAnswerDisplayText = (quiz: KinestheticQuiz, answerPairs: { [key: string]: string }) => {
+    const getAnswerDisplayText = (quiz: Rec_KinestheticQuiz, answerPairs: { [key: string]: string }) => {
         return Object.entries(answerPairs).map(([sound, itemId]) => {
             if (itemId === 'No answer' || !itemId) {
                 return `${sound}: No answer`;
@@ -595,4 +595,4 @@ const Kinesthetic: React.FC = () => {
     );
 };
 
-export default Kinesthetic;
+export default Rec_Kinesthetic;

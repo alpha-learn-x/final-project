@@ -10,6 +10,14 @@ interface UserQuizData {
     results: string[]; // e.g., ["READWRITE 200%"]
 }
 
+// Mapping modality display name to recommendation route
+const recommendationRoutes: Record<string, string> = {
+    'Visual': '/rec-visual',
+    'Auditory': '/rec-auditory',
+    'Read/Write': '/rec-read-and-write',
+    'Kinesthetic': '/rec-kinesthetic',
+};
+
 const UserAllResults: React.FC = () => {
     const [quizData, setQuizData] = useState<UserQuizData | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -34,17 +42,13 @@ const UserAllResults: React.FC = () => {
                     },
                 });
 
-                console.log('API Response:', response.data); // Debug the full response
-
                 // Handle response structure (check for data wrapper)
                 const userData: UserQuizData = response.data.data || response.data;
                 if (!userData.results || !Array.isArray(userData.results)) {
                     throw new Error('Invalid data format from API');
                 }
-                console.log(userData);
                 setQuizData(userData);
             } catch (error: any) {
-                console.error('Error fetching user quiz percentages:', error.response?.data || error.message);
                 setError(
                     error.response?.data?.error || 'Failed to load quiz percentages. Please try again later.'
                 );
@@ -66,21 +70,19 @@ const UserAllResults: React.FC = () => {
             setLowScoreModalities(lowScores);
             setShowPopup(lowScores.length > 0);
         }
+        // eslint-disable-next-line
     }, [quizData]);
 
-    // Fixed parsePercentage function to handle both decimal and whole numbers
+    // Parse % as number from string like "READWRITE 80.5%"
     const parsePercentage = (result: string) => {
-        // Match patterns like "200%", "20.5%", "0.0%"
         const match = result.match(/(\d+(?:\.\d+)?)%/);
         return match ? parseFloat(match[1]) : 0;
     };
 
     const getResultForTitle = (title: string) => {
-        const upperTitle = title.toUpperCase().replace(/[\/\s]/g, ''); // Handle "Read/Write" -> "READWRITE"
-        console.log('Looking for title:', upperTitle, 'in results:', quizData?.results);
+        const upperTitle = title.toUpperCase().replace(/[\/\s]/g, ''); // "Read/Write" -> "READWRITE"
         return quizData?.results.find(r => {
-            const resultTitle = r.split(' ')[0]; // Get the quiz name part before the percentage
-            console.log('Comparing:', resultTitle, 'with:', upperTitle);
+            const resultTitle = r.split(' ')[0]; // e.g. "READWRITE"
             return resultTitle === upperTitle;
         });
     };
@@ -92,8 +94,6 @@ const UserAllResults: React.FC = () => {
     ) => {
         const result = getResultForTitle(title);
         const percentage = result ? parsePercentage(result) : 0;
-
-        console.log(`Card for ${title}:`, { result, percentage });
 
         return (
             <div className={`bg-gradient-to-br ${color} text-white shadow-xl rounded-2xl p-6 w-full transform transition-transform hover:scale-[1.02]`}>
@@ -112,17 +112,16 @@ const UserAllResults: React.FC = () => {
         );
     };
 
-    // Navigate to game page for a specific modality
-    const handleNavigateToGame = (modality: string) => {
-        const path = `/games/${modality.toLowerCase().replace(/[\/\s]/g, '')}`;
-        setShowPopup(false);
-        navigate(path);
+    // Navigate to recommendation page for a specific modality
+    const handleNavigateToRecommendation = (modality: string) => {
+        const route = recommendationRoutes[modality];
+        if (route) {
+            setShowPopup(false);
+            navigate(route);
+        } else {
+            alert('No recommendation route found!');
+        }
     };
-
-    // Debug state in the UI
-    useEffect(() => {
-        console.log('quizData state:', quizData);
-    }, [quizData]);
 
     return (
         <div className="bg-gray-100 p-6">
@@ -158,7 +157,7 @@ const UserAllResults: React.FC = () => {
                                         <button
                                             key={modality}
                                             className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
-                                            onClick={() => handleNavigateToGame(modality)}
+                                            onClick={() => handleNavigateToRecommendation(modality)}
                                         >
                                             Improve {modality} Skills
                                         </button>
