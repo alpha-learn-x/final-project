@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link } from 'react-router-dom';
-import { Play, Pause, Home } from 'lucide-react';
-import axios from 'axios';
 import Header from "@/components/Header.tsx";
+import axios from 'axios';
+import { Home, Pause, Play } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from 'react-router-dom';
 
 interface AuditoryQuiz {
     _id: string;
@@ -62,6 +62,7 @@ const Auditory: React.FC = () => {
         const fetchQuizzes = async () => {
             try {
                 const response = await axios.get('http://localhost:5000/api/v1/quizzes/auditory/get-all');
+                console.log(response)
                 const quizzesData = response.data;
 
                 if (!quizzesData || !Array.isArray(quizzesData)) {
@@ -124,8 +125,12 @@ const Auditory: React.FC = () => {
     const playAudio = () => {
         if (audioRef.current && currentQuiz?.audioUrl) {
             audioRef.current.currentTime = 0;
-            audioRef.current.play();
-            setIsPlaying(true);
+            audioRef.current.play().then(() => {
+                setIsPlaying(true);
+            }).catch((err) => {
+                console.error("Audio play failed:", err);
+                setIsPlaying(false);
+            });
         }
     };
 
@@ -432,7 +437,14 @@ const Auditory: React.FC = () => {
                             </h3>
 
                             {currentQuiz?.audioUrl && (
-                                <audio ref={audioRef} src={currentQuiz.audioUrl} />
+                                <audio
+                                    ref={audioRef}
+                                    src={currentQuiz.audioUrl}
+                                    controls
+                                    style={{ width: "100%", marginBottom: "1rem" }}
+                                >
+                                    Your browser does not support the audio element.
+                                </audio>
                             )}
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
