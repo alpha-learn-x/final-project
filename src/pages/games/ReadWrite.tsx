@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Home } from 'lucide-react';
-import axios from 'axios';
 import Header from "@/components/Header.tsx";
+import axios from 'axios';
+import { Home } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 interface Question {
     _id: string;
@@ -448,34 +448,63 @@ const ReadWrite: React.FC = () => {
                                     <div className="grid grid-cols-2 gap-4 mt-6">
                                         {currentOptions.map((option, idx) => {
                                             const isSelected = answers[currentQuestionIndex]?.includes(String(idx + 1));
-
+                                            // Find the rank assigned to this option (1-4), or ''
+                                            const curOrder = typedAnswers[currentQuestionIndex] || '';
+                                            let rank = '';
+                                            for (let i = 0; i < curOrder.length; i++) {
+                                                if (curOrder[i] === String(idx + 1)) {
+                                                    rank = String(i + 1);
+                                                    break;
+                                                }
+                                            }
                                             return (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => handleAnswerSelect(option, idx)}
-                                                    className={`bg-gradient-to-r from-pink-200 to-purple-200 px-6 py-4 rounded-full text-lg font-medium text-purple-800 border-2 border-purple-300 hover:from-pink-300 hover:to-purple-300 transition-all duration-200 ${
-                                                        isSelected ? 'from-purple-300 to-pink-300 ring-4 ring-purple-400' : ''
-                                                    }`}
-                                                    disabled={isCheckingAnswer}
-                                                >
-                                                    {String.fromCharCode(65 + idx)}. {option}
-                                                </button>
+                                                <div key={idx} className="flex items-center gap-3">
+                                                    {/* Small square input to type order number */}
+                                                    <input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        maxLength={1}
+                                                        className="w-10 h-10 text-center border-2 border-purple-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 tabular-nums"
+                                                        placeholder=""
+                                                        value={rank}
+                                                        onChange={e => {
+                                                            let v = e.target.value.replace(/[^1-4]/g, '');
+                                                            let cur = typedAnswers[currentQuestionIndex] || '';
+                                                            // Remove this option from any previous rank
+                                                            let arr = cur.split('').filter(c => c !== String(idx + 1));
+                                                            if (v) {
+                                                                const pos = parseInt(v, 10) - 1;
+                                                                // Remove any option already assigned to this rank
+                                                                arr = arr.filter((_, i) => i !== pos);
+                                                                // Insert this option at the correct rank
+                                                                if (pos >= 0 && pos <= arr.length) {
+                                                                    arr.splice(pos, 0, String(idx + 1));
+                                                                } else {
+                                                                    arr.push(String(idx + 1));
+                                                                }
+                                                            }
+                                                            // Normalize to max 4 digits
+                                                            arr = arr.slice(0, 4);
+                                                            const next = arr.join('');
+                                                            const newTyped = [...typedAnswers];
+                                                            newTyped[currentQuestionIndex] = next;
+                                                            setTypedAnswers(newTyped);
+                                                        }}
+                                                        disabled={isCheckingAnswer}
+                                                    />
+                                                    <button
+                                                        onClick={() => handleAnswerSelect(option, idx)}
+                                                        className={`flex-1 text-left bg-gradient-to-r from-pink-200 to-purple-200 px-6 py-4 rounded-full text-lg font-medium text-purple-800 border-2 border-purple-300 hover:from-pink-300 hover:to-purple-300 transition-all duration-200 ${
+                                                            isSelected ? 'from-purple-300 to-pink-300 ring-4 ring-purple-400' : ''
+                                                        }`}
+                                                        disabled={isCheckingAnswer}
+                                                        type="button"
+                                                    >
+                                                        {String.fromCharCode(65 + idx)}. {option}
+                                                    </button>
+                                                </div>
                                             );
                                         })}
-                                    </div>
-                                    <div className="mt-6">
-                                        <label htmlFor="answerOrder" className="block text-lg font-semibold text-purple-800 mb-2">
-                                            Type Answer Order (e.g., 1342):
-                                        </label>
-                                        <input
-                                            id="answerOrder"
-                                            type="text"
-                                            value={typedAnswers[currentQuestionIndex] || ''}
-                                            onChange={handleTypedAnswerChange}
-                                            className="w-full p-3 rounded-lg border-2 border-purple-300 focus:outline-none focus:border-purple-500"
-                                            placeholder="Enter order (e.g., 1342)"
-                                            disabled={isCheckingAnswer}
-                                        />
                                     </div>
                                 </div>
 
