@@ -75,9 +75,8 @@ const Register = () => {
 
       setSuccessMessage("Registration successful! Redirecting to learning area...");
 
-      // Navigate to activities after a short delay
       setTimeout(() => {
-        navigate('/login');
+        navigate('/signin');
       }, 2000);
     } catch (err) {
       setError(err.message || "An error occurred during registration");
