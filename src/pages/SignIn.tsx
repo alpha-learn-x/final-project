@@ -82,14 +82,14 @@ const SignIn = () => {
       type: "student" as const,
       icon: GraduationCap,
       title: "Student",
-      description: "Hi Sonali! Access your learning activities and progress",
+      description: "Access your learning activities and progress",
       color: "from-blue-100 to-blue-200 border-blue-300"
     },
     {
       type: "teacher" as const,
       icon: User,
       title: "Teacher",
-      description: "Guide Sonali and track student progress",
+      description: "Guide Student and track student progress",
       color: "from-purple-100 to-purple-200 border-purple-300"
     }
   ];
@@ -112,11 +112,11 @@ const SignIn = () => {
                 <div className="flex items-center space-x-2">
                   <h1 className="text-2xl font-bold text-blue-600">TinkerAlpha ⚡</h1>
                 </div>
-                <Link to="/">
-                  <Button variant="outline" className="border-2 border-blue-500 text-blue-600 hover:bg-blue-50">
-                    Back to Home
-                  </Button>
-                </Link>
+                <Link to="/register">
+                    <Button className="bg-green-500 hover:bg-green-600 text-white font-bold px-6 py-2">
+                      Register Now
+                    </Button>
+                  </Link>
               </div>
             </div>
           </nav>
@@ -125,7 +125,7 @@ const SignIn = () => {
             <div className="max-w-4xl mx-auto">
               {/* Header */}
               <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-white mb-4">🔐 Welcome Back, Sonali!</h1>
+                <h1 className="text-4xl font-bold text-white mb-4">🔐 Welcome to Tinker Aplha!</h1>
                 <p className="text-xl text-white/90">Choose your role and sign in to continue your amazing learning adventure!</p>
               </div>
 

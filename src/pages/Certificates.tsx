@@ -7,8 +7,11 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header.tsx";
 
 const Certificates = () => {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const userName = currentUser.userName || 'User'; // fallback if missing
+
   const childData = {
-    name: "Sonali Fernando",
+    name: userName,
     age: 12,
     batch: "Batch A",
     enrolledDate: "January 2025",

@@ -8,38 +8,50 @@ const API_BASE_URL = "http://localhost:5000/api/v1/activities";
 // Placeholder activityId (replace with dynamic value in production)
 const ACTIVITY_ID = "67890";
 
+type UserAnswers = {
+  circuitAnswers: any[];
+  activityAnswers: any[];
+  puzzleAnswer: any;
+  finalScore: number;
+};
+
 const Circuit = () => {
-  // Retrieve user data from localStorage
-  const [userId, setUserId] = useState("STUDENT001");
-  const [userName, setUserName] = useState("Student");
+  // ✅ Pull current user from localStorage (same pattern as before)
+  const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+  const initialUserId = currentUser.userId || "STUDENT001";
+  const initialUserName = currentUser.userName || "User";
+
+  const [userId, setUserId] = useState<string>(initialUserId);
+  const [userName, setUserName] = useState<string>(initialUserName);
 
   useEffect(() => {
+    // In case localStorage changes after first render
     try {
-      const userData = localStorage.getItem("user");
+      const userData = localStorage.getItem("currentUser");
       if (userData) {
         const parsedUser = JSON.parse(userData);
         if (parsedUser.userId) setUserId(parsedUser.userId);
         if (parsedUser.userName) setUserName(parsedUser.userName);
       }
-    } catch (error) {
-      console.error("Error parsing user data from localStorage:", error.message);
+    } catch (error: any) {
+      console.error("Error parsing user data from localStorage:", error?.message || error);
     }
   }, []);
 
-  const [currentSection, setCurrentSection] = useState('intro');
-  const [activityCompleted, setActivityCompleted] = useState(false);
-  const [circuitCompleted, setCircuitCompleted] = useState(false);
-  const [puzzleCompleted, setPuzzleCompleted] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [earnedStars, setEarnedStars] = useState(0);
-  const [userAnswers, setUserAnswers] = useState({
+  const [currentSection, setCurrentSection] = useState<'intro'|'circuit'|'activity'|'puzzle'|'complete'>('intro');
+  const [activityCompleted, setActivityCompleted] = useState<boolean>(false);
+  const [circuitCompleted, setCircuitCompleted] = useState<boolean>(false);
+  const [puzzleCompleted, setPuzzleCompleted] = useState<boolean>(false);
+  const [showFeedback, setShowFeedback] = useState<boolean>(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string>("");
+  const [earnedStars, setEarnedStars] = useState<number>(0);
+  const [userAnswers, setUserAnswers] = useState<UserAnswers>({
     circuitAnswers: [],
     activityAnswers: [],
     puzzleAnswer: null,
     finalScore: 0
   });
-  const videoRef = useRef(null);
+  const videoRef = useRef<HTMLIFrameElement | null>(null);
 
   // Fetch initial activity progress when component mounts
   useEffect(() => {
@@ -64,8 +76,8 @@ const Circuit = () => {
           console.log("Progress:", progress);
           console.log("===============================");
         }
-      } catch (error) {
-        console.error("Error fetching activity progress:", error.message);
+      } catch (error: any) {
+        console.error("Error fetching activity progress:", error?.message || error);
       }
     };
     fetchProgress();
@@ -83,7 +95,7 @@ const Circuit = () => {
     console.log("===============================");
   }, [currentSection, circuitCompleted, activityCompleted, puzzleCompleted, userAnswers, earnedStars]);
 
-  const logUserAction = async (action, data) => {
+  const logUserAction = async (action: string, data: any) => {
     console.log(`=== USER ACTION: ${action} ===`);
     console.log("Timestamp:", new Date().toISOString());
     console.log("Data:", data);
@@ -105,12 +117,12 @@ const Circuit = () => {
       if (!result.success) {
         console.error("Error saving user action:", result.message);
       }
-    } catch (error) {
-      console.error("Error saving user action:", error.message);
+    } catch (error: any) {
+      console.error("Error saving user action:", error?.message || error);
     }
   };
 
-  const showSuccessFeedback = (message, stars) => {
+  const showSuccessFeedback = (message: string, stars: number) => {
     setFeedbackMessage(message);
     setEarnedStars(prev => prev + stars);
     setShowFeedback(true);
@@ -162,8 +174,8 @@ const Circuit = () => {
       } else {
         console.error("Error saving circuit completion:", result.message);
       }
-    } catch (error) {
-      console.error("Error saving circuit completion:", error.message);
+    } catch (error: any) {
+      console.error("Error saving circuit completion:", error?.message || error);
     }
 
     showSuccessFeedback("Great job! ⚡ Circuit completed!", 3);
@@ -207,15 +219,15 @@ const Circuit = () => {
       if (!result.success) {
         console.error("Error saving activity completion:", result.message);
       }
-    } catch (error) {
-      console.error("Error saving activity completion:", error.message);
+    } catch (error: any) {
+      console.error("Error saving activity completion:", error?.message || error);
     }
 
     showSuccessFeedback("Interactive activity completed! Amazing work! 🏆", 5);
     setTimeout(() => setCurrentSection('puzzle'), 2000);
   };
 
-  const handlePuzzleComplete = async (selectedAnswer) => {
+  const handlePuzzleComplete = async (selectedAnswer: string) => {
     const puzzleData = {
       question: "Find the Missing Connection in Circuit",
       userAnswer: selectedAnswer,
@@ -252,8 +264,8 @@ const Circuit = () => {
       if (!result.success) {
         console.error("Error saving puzzle completion:", result.message);
       }
-    } catch (error) {
-      console.error("Error saving puzzle completion:", error.message);
+    } catch (error: any) {
+      console.error("Error saving puzzle completion:", error?.message || error);
     }
 
     // Log final summary
@@ -286,7 +298,7 @@ const Circuit = () => {
     alert("📱 3D Circuit View: Interactive 3D model of simple electric circuit with battery, switch, and LED would appear here! Scan the barcode with your phone camera to see the full AR experience.");
   };
 
-  const playInstructions = (text) => {
+  const playInstructions = (text: string) => {
     logUserAction("AUDIO_INSTRUCTION", {
       instruction: text,
       section: currentSection
@@ -294,7 +306,8 @@ const Circuit = () => {
 
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.voice = speechSynthesis.getVoices().find(voice => voice.name.includes('Female')) || speechSynthesis.getVoices()[0];
+      const voices = speechSynthesis.getVoices();
+      utterance.voice = voices.find(v => v.name.includes('Female')) || voices[0];
       utterance.rate = 0.8;
       speechSynthesis.speak(utterance);
     }
@@ -612,9 +625,7 @@ const Circuit = () => {
         <div className="absolute bottom-20 left-20 text-4xl animate-pulse">🎈</div>
 
         {/* Navigation Bar */}
-        {/* Navigation Bar */}
         <Header></Header>
-        {/* Navigation Bar */}
 
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
