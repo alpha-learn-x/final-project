@@ -210,11 +210,10 @@ const Dashboard = () => {
                     <div className="text-center mb-8">
                         <div
                             className="w-24 h-24 bg-pink-300 rounded-full mx-auto mb-4 flex items-center justify-center border-4 border-white">
-                            <img src="/Uploads/00d4cb2f-56bd-4d1f-955b-70e4a28236e0.png" alt="Student"
+                            <img src="/Uploads/pic.jpg" 
                                  className="w-20 h-20 rounded-full object-cover"/>
                         </div>
                         <h2 className="text-xl font-bold text-gray-800">Hello {userName}! 👋</h2>
-                        <p className="text-sm text-gray-600">Let's check your progress</p>
                     </div>
                     <nav className="flex-1 space-y-2">
                         {sidebarItems.map((item, index) => (
@@ -264,7 +263,7 @@ const Dashboard = () => {
                             </Link>
                             <Link to="/game-context" className="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
                                 <Target className="mr-1 h-4 w-4" />
-                                Games
+                                Modality
                             </Link>
                         </div>
                         <div className="flex items-center space-x-4">

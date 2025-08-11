@@ -75,9 +75,8 @@ const Register = () => {
 
       setSuccessMessage("Registration successful! Redirecting to learning area...");
 
-      // Navigate to activities after a short delay
       setTimeout(() => {
-        navigate('/login');
+        navigate('/signin');
       }, 2000);
     } catch (err) {
       setError(err.message || "An error occurred during registration");
@@ -324,12 +323,12 @@ const Register = () => {
                 </CardContent>
               </Card>
 
-              {/* Back to Home */}
+              {/* Back to Login */}
               <div className="text-center mt-8">
                 <Link to="/">
                   <Button className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-                    <Home className="mr-3 h-5 w-5" />
-                    🏠 Back to Home
+                    
+                    Back to Login
                   </Button>
                 </Link>
               </div>

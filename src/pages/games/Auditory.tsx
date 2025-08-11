@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Link } from 'react-router-dom';
-import { Play, Pause, Home } from 'lucide-react';
-import axios from 'axios';
 import Header from "@/components/Header.tsx";
+import axios from 'axios';
+import { Home, Pause, Play } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from 'react-router-dom';
 
 interface AuditoryQuiz {
     _id: string;
@@ -13,7 +13,6 @@ interface AuditoryQuiz {
     answer3: string;
     answer4: string;
     correctAnswer: string;
-    audioUrl?: string;
     createdAt: string;
 }
 
@@ -31,6 +30,17 @@ interface QuizResult {
     userAnswer: string;
     correctAnswer: string;
 }
+
+const AUDIO_SRC = "/what_does_a_battery_do.mp3";
+
+// 19s total -> 5 segments (~3.8s each) - Updated to be sequential
+const MANUAL_SEGMENTS: Array<{ start: number; end: number }> = [
+    { start: 0, end: 4 },      // Q1: 0-3.8s
+    { start: 4, end: 8 },    // Q2: 3.8-7.6s  
+    { start: 8, end: 12 },   // Q3: 7.6-11.4s
+    { start: 12, end: 15 },  // Q4: 11.4-15.2s
+    { start: 15, end: 19 }   // Q5: 15.2-19.0s (end of audio)
+];
 
 const Auditory: React.FC = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -58,6 +68,17 @@ const Auditory: React.FC = () => {
     const [results, setResults] = useState<QuizResult[]>([]);
     const [isCheckingAnswer, setIsCheckingAnswer] = useState(false);
 
+    // Active segments for this quiz set
+    const [segments, setSegments] = useState<Array<{ start: number; end: number }>>([]);
+
+    // Convenience getter: use MANUAL_SEGMENTS if ready, else state `segments`
+    const getSeg = (idx: number) => {
+        const manualReady = MANUAL_SEGMENTS.length === quizzes.length;
+        const source = manualReady ? MANUAL_SEGMENTS : segments;
+        return source[idx];
+    };
+
+    // Load quizzes + user
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
@@ -67,7 +88,6 @@ const Auditory: React.FC = () => {
                 if (!quizzesData || !Array.isArray(quizzesData)) {
                     throw new Error("Invalid data format: Expected an array of quizzes");
                 }
-
                 if (quizzesData.length === 0) {
                     throw new Error("No quiz questions found");
                 }
@@ -101,6 +121,33 @@ const Auditory: React.FC = () => {
         }
     }, []);
 
+    // As soon as quizzes are known, set segments if manual length matches
+    useEffect(() => {
+        if (quizzes.length > 0 && MANUAL_SEGMENTS.length === quizzes.length) {
+            setSegments(MANUAL_SEGMENTS);
+        }
+    }, [quizzes.length]);
+
+    // Also build segments after metadata if we need auto-split fallback
+    const handleAudioLoadedMetadata = () => {
+        const audio = audioRef.current;
+        if (!audio || quizzes.length === 0) return;
+
+        // If manual matches, we already set above; skip
+        if (MANUAL_SEGMENTS.length === quizzes.length) return;
+
+        const duration = audio.duration || 0;
+        if (duration > 0) {
+            const segSize = duration / quizzes.length;
+            const autoSegments = quizzes.map((_, idx) => {
+                const start = segSize * idx;
+                const end = idx === quizzes.length - 1 ? duration : segSize * (idx + 1);
+                return { start, end };
+            });
+            setSegments(autoSegments);
+        }
+    };
+
     // Timer effect
     useEffect(() => {
         let timer: NodeJS.Timeout;
@@ -113,26 +160,78 @@ const Auditory: React.FC = () => {
         return () => clearInterval(timer);
     }, [isTimerRunning]);
 
-    const handleStartTimer = () => {
-        if (!isTimerRunning) {
-            setStartTime(new Date().getTime());
-            setIsTimerRunning(true);
-            playAudio();
-        }
+    // Auto-pause when current segment ends
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        const onTimeUpdate = () => {
+            const seg = getSeg(currentQuestionIndex);
+            if (!seg || !isPlaying) return;
+            
+            // Add small tolerance for timing precision (0.1s)
+            if (audio.currentTime >= seg.end - 0.1) {
+                audio.pause();
+                setIsPlaying(false);
+                console.log(`Audio paused at ${audio.currentTime}s, segment end: ${seg.end}s`);
+            }
+        };
+
+        const onEnded = () => {
+            setIsPlaying(false);
+        };
+
+        audio.addEventListener("timeupdate", onTimeUpdate);
+        audio.addEventListener("ended", onEnded);
+        
+        return () => {
+            audio.removeEventListener("timeupdate", onTimeUpdate);
+            audio.removeEventListener("ended", onEnded);
+        };
+    }, [currentQuestionIndex, quizzes.length, isPlaying]);
+
+    // Helpers that accept an explicit index (fixes stale closure issues)
+    const seekToSegmentStart = (index?: number) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const idx = index ?? currentQuestionIndex;
+        const seg = getSeg(idx);
+        if (!seg) return;
+        audio.currentTime = seg.start;
     };
 
-    const playAudio = () => {
-        if (audioRef.current && currentQuiz?.audioUrl) {
-            audioRef.current.currentTime = 0;
-            audioRef.current.play();
-            setIsPlaying(true);
-        }
+    const playSegment = (index?: number) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const idx = index ?? currentQuestionIndex;
+        const seg = getSeg(idx);
+        if (!seg) return;
+
+        // Always start from the beginning of the current segment
+        audio.currentTime = seg.start;
+        console.log(`Playing segment ${idx + 1}: ${seg.start}s - ${seg.end}s`);
+        
+        audio.play()
+            .then(() => setIsPlaying(true))
+            .catch(err => {
+                console.error("Audio play failed:", err);
+                setIsPlaying(false);
+            });
     };
 
     const pauseAudio = () => {
         if (audioRef.current) {
             audioRef.current.pause();
             setIsPlaying(false);
+        }
+    };
+
+    const handleStartTimer = () => {
+        if (!isTimerRunning) {
+            setStartTime(new Date().getTime());
+            setIsTimerRunning(true);
+            seekToSegmentStart(currentQuestionIndex);
+            playSegment(currentQuestionIndex);
         }
     };
 
@@ -152,7 +251,6 @@ const Auditory: React.FC = () => {
             return response.data.correct;
         } catch (error) {
             console.error('Error checking answer with backend:', error);
-            // Fallback to local check
             const currentQuestion = quizzes[currentQuestionIndex];
             return currentQuestion.correctAnswer === selectedAnswer;
         }
@@ -168,7 +266,6 @@ const Auditory: React.FC = () => {
         const userAnswer = answers[currentQuestionIndex];
 
         try {
-            // Check answer with backend
             const isCorrect = await checkAnswerWithBackend(currentQuestion._id, userAnswer);
             const marks = isCorrect ? 1 : 0;
 
@@ -203,10 +300,16 @@ const Auditory: React.FC = () => {
         if (!showCurrentResult) return;
 
         if (currentQuestionIndex < quizzes.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
+            const nextIndex = currentQuestionIndex + 1;
+            setCurrentQuestionIndex(nextIndex);
             setTime(0);
             setShowCurrentResult(false);
-            playAudio();
+
+            // Wait a bit for state to update, then seek and play next segment
+            setTimeout(() => {
+                seekToSegmentStart(nextIndex);
+                playSegment(nextIndex);
+            }, 100);
         } else {
             setIsTimerRunning(false);
             setIsSubmitted(true);
@@ -263,14 +366,10 @@ const Auditory: React.FC = () => {
         };
 
         try {
-            const response = await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+            await axios.post('http://localhost:5000/api/v1/quizzes/results', payload, {
+                headers: { 'Content-Type': 'application/json' }
             });
-
             setSaveStatus('✅ Quiz results saved successfully!');
-            console.log('Quiz results saved:', response.data);
         } catch (error: any) {
             setSaveStatus('❌ Error saving quiz results. Please try again.');
             console.error('Error saving quiz results:', error.response?.data || error.message);
@@ -290,6 +389,8 @@ const Auditory: React.FC = () => {
         setSaveStatus(null);
         setIsCheckingAnswer(false);
         pauseAudio();
+        // Reset to first segment
+        setTimeout(() => seekToSegmentStart(0), 100);
     };
 
     const formatTime = (seconds: number) => {
@@ -306,16 +407,15 @@ const Auditory: React.FC = () => {
         return "text-red-500";
     };
 
-    // Get current quiz question
+    // Current quiz
     const currentQuiz = quizzes[currentQuestionIndex];
 
-    // Create options array from answer fields
     const currentOptions = currentQuiz ? [
         currentQuiz.answer1,
         currentQuiz.answer2,
         currentQuiz.answer3,
         currentQuiz.answer4
-    ].filter(Boolean) : []; // Filter out empty answers
+    ].filter(Boolean) : [];
 
     if (isLoading) {
         return (
@@ -399,8 +499,8 @@ const Auditory: React.FC = () => {
                         {!isSubmitted && (
                             <p className="text-lg font-bold mt-2">
                                 Current Score: <span className={getScoreColor(totalMarks)}>
-                                    {totalMarks} / {quizzes.length}
-                                </span>
+                  {totalMarks} / {quizzes.length}
+                </span>
                             </p>
                         )}
                     </div>
@@ -413,8 +513,8 @@ const Auditory: React.FC = () => {
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-lg font-bold text-purple-800">Progress</span>
                                     <span className="text-lg font-bold text-purple-800">
-                                        {currentQuestionIndex + 1} / {quizzes.length}
-                                    </span>
+                    {currentQuestionIndex + 1} / {quizzes.length}
+                  </span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-4">
                                     <div
@@ -431,17 +531,25 @@ const Auditory: React.FC = () => {
                                 {currentQuiz?.question}
                             </h3>
 
-                            {currentQuiz?.audioUrl && (
-                                <audio ref={audioRef} src={currentQuiz.audioUrl} />
-                            )}
+                            {/* Shared audio player */}
+                            <audio
+                                ref={audioRef}
+                                src={AUDIO_SRC}
+                                controls
+                                preload="auto"
+                                onLoadedMetadata={handleAudioLoadedMetadata}
+                                style={{ width: "100%", marginBottom: "1rem" }}
+                            >
+                                Your browser does not support the audio element.
+                            </audio>
 
                             <div className="text-center mb-6 bg-blue-100 p-4 rounded-xl">
-                                <span className="text-2xl mr-6 font-bold text-blue-800">
-                                    ⏱️ Total Time: {formatTime(totalTime)}
-                                </span>
+                <span className="text-2xl mr-6 font-bold text-blue-800">
+                  ⏱️ Total Time: {formatTime(totalTime)}
+                </span>
                                 <span className="text-lg mr-6 text-gray-600">
-                                    Current Question: {formatTime(time)}
-                                </span>
+                  Current Question: {formatTime(time)}
+                </span>
                                 <div className="flex justify-center gap-4 mt-4">
                                     <button
                                         onClick={handleStartTimer}
@@ -451,9 +559,9 @@ const Auditory: React.FC = () => {
                                         {isTimerRunning ? "⏰ Timer Running..." : "🚀 Start Now"}
                                     </button>
                                     <button
-                                        onClick={playAudio}
+                                        onClick={() => playSegment()}
                                         className="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition-colors font-bold"
-                                        disabled={!isTimerRunning || !currentQuiz?.audioUrl}
+                                        disabled={!isTimerRunning}
                                     >
                                         <Play className="inline-block mr-2" size={20} />
                                         {isPlaying ? "Playing..." : "Play Audio"}
@@ -499,9 +607,7 @@ const Auditory: React.FC = () => {
                                     </p>
                                     <div className="mt-4">
                                         <div className={`p-4 rounded mb-2 ${
-                                            currentResult.marks > 0
-                                                ? 'bg-green-200'
-                                                : 'bg-red-200'
+                                            currentResult.marks > 0 ? 'bg-green-200' : 'bg-red-200'
                                         }`}>
                                             <p className="font-semibold">{currentQuiz?.question}</p>
                                             <p className="mt-2">
@@ -598,5 +704,4 @@ const Auditory: React.FC = () => {
         </div>
     );
 };
-
 export default Auditory;
