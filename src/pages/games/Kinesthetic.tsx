@@ -411,7 +411,7 @@ const Kinesthetic: React.FC = () => {
                                 <button
                                     onClick={handleStartTimer}
                                     disabled={isTimerRunning}
-                                    className="bg-green-500 text-white px-4 py-2 rounded-full disabled:opacity-50"
+                                    className="bg-green-500 text-white px-10 py-3 rounded-full disabled:opacity-50"
                                 >
                                     {isTimerRunning ? "Timer Running..." : "Start Now!"}
                                 </button>
