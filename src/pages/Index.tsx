@@ -163,7 +163,7 @@ const Index = () => {
 
         {/* User Type Section */}
         <div className="mb-16">
-          <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> 🙋🏻♀️Choose Your Role & Sign In</h2>
+          <h2 className="text-4xl font-bold text-center text-blue-800 mb-8"> 🙋🏻Choose Your Role & Sign In</h2>
           <div className="grid md:grid-cols-2 gap-8">
             {userTypes.map((userType) => {
               const IconComponent = userType.icon;

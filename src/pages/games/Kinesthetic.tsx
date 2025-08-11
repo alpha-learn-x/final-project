@@ -404,6 +404,18 @@ const Kinesthetic: React.FC = () => {
                             </div>
 
                             <div className="space-y-4 mb-6">
+                                  <div className="flex justify-between items-center mb-6">
+                                <div className="text-lg font-bold text-blue-800">
+                                    ⏱️ Time: {formatTime(time)} (Total: {formatTime(totalTime)})
+                                </div>
+                                <button
+                                    onClick={handleStartTimer}
+                                    disabled={isTimerRunning}
+                                    className="bg-green-500 text-white px-4 py-2 rounded-full disabled:opacity-50"
+                                >
+                                    {isTimerRunning ? "Timer Running..." : "Start Now!"}
+                                </button>
+                            </div>
                                 {Object.keys(currentQuiz.correctPairs).map((sound, index) => (
                                     <div
                                         key={sound}
@@ -453,18 +465,7 @@ const Kinesthetic: React.FC = () => {
                                 ))}
                             </div>
 
-                            <div className="flex justify-between items-center mb-6">
-                                <div className="text-lg font-bold text-blue-800">
-                                    ⏱️ Time: {formatTime(time)} (Total: {formatTime(totalTime)})
-                                </div>
-                                <button
-                                    onClick={handleStartTimer}
-                                    disabled={isTimerRunning}
-                                    className="bg-green-500 text-white px-4 py-2 rounded-full disabled:opacity-50"
-                                >
-                                    {isTimerRunning ? "Timer Running..." : "Start Timer"}
-                                </button>
-                            </div>
+                          
 
                             {showCurrentResult && currentResult && (
                                 <div className="mt-6 p-6 rounded-xl border-2 bg-green-100 border-green-400">
