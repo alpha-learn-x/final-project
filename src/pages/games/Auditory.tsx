@@ -35,11 +35,31 @@ const AUDIO_SRC = "/what_does_a_battery_do.mp3";
 
 // 19s total -> 5 segments (~3.8s each) - Updated to be sequential
 const MANUAL_SEGMENTS: Array<{ start: number; end: number }> = [
-    { start: 0, end: 3 },      // Q1: 0-3.8s
-    { start: 3, end: 7 },    // Q2: 3.8-7.6s  
-    { start: 7, end: 11 },   // Q3: 7.6-11.4s
-    { start: 11, end: 14 },  // Q4: 11.4-15.2s
-    { start: 14, end: 19 }   // Q5: 15.2-19.0s (end of audio)
+    { start: 0, end: 18 },      // Q1: 0-3.8s
+    { start: -3, end: -3 },    // Q2:  
+    { start: -3, end: -1 },   // Q3: 
+    { start: -3, end: -1 },  // Q4: 
+    { start: -3, end: -1 }, // Q5: (end of 1 audio)
+    { start: 18, end: 36 },      // Q6: 0-3.8s
+    { start: -3, end: -1 },    // Q7: 3.8-7.6s  
+    { start: -3, end: -1 },   // Q8: 7.6-11.4s
+    { start: -3, end: -1 },  // Q9: 11.4-15.2s
+    { start: -3, end: -1 }, // Q10: 15.2-19.0s (end of 2 audio)
+    { start: 36, end: 53 },      // Q11: 0-3.8s
+    { start: -3, end: -1 },    // Q12:  
+    { start: -3, end: -1 },   // Q13: 
+    { start: -3, end: -1 },  // Q14: 
+    { start: -3, end: -1 }, // Q15: (end of 3 audio)
+    { start: 53, end: 69 },      // Q16: 0-3.8s
+    { start: -3, end: -1 },    // Q17: 3.8-7.6s  
+    { start: -3, end: -1 },   // Q18: 7.6-11.4s
+    { start: -3, end: -1 },  // Q19: 11.4-15.2s
+    { start: -3, end: -1 }, // Q20: 15.2-19.0s (end of 4 audio)
+    { start: 68, end: 85 },      // Q21: 0-3.8s
+    { start: -3, end: -1 },    // Q22:  
+    { start: -3, end: -1 },   // Q23: 
+    { start: -3, end: -1 },  // Q24: 
+    { start: -3, end: -1 } // Q25: (end of 5 audio)
 ];
 
 const Auditory: React.FC = () => {
