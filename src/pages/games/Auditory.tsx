@@ -35,11 +35,11 @@ const AUDIO_SRC = "/what_does_a_battery_do.mp3";
 
 // 19s total -> 5 segments (~3.8s each) - Updated to be sequential
 const MANUAL_SEGMENTS: Array<{ start: number; end: number }> = [
-    { start: 0, end: 4 },      // Q1: 0-3.8s
-    { start: 4, end: 8 },    // Q2: 3.8-7.6s  
-    { start: 8, end: 12 },   // Q3: 7.6-11.4s
-    { start: 12, end: 15 },  // Q4: 11.4-15.2s
-    { start: 15, end: 19 }   // Q5: 15.2-19.0s (end of audio)
+    { start: 0, end: 3 },      // Q1: 0-3.8s
+    { start: 3, end: 7 },    // Q2: 3.8-7.6s  
+    { start: 7, end: 11 },   // Q3: 7.6-11.4s
+    { start: 11, end: 14 },  // Q4: 11.4-15.2s
+    { start: 14, end: 19 }   // Q5: 15.2-19.0s (end of audio)
 ];
 
 const Auditory: React.FC = () => {
