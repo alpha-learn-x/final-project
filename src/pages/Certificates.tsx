@@ -33,7 +33,7 @@ const Certificates = () => {
       title: "Modality Test",
       completedDate: "Pending",
       activity: "Written Logic Award – Read/Write Excellence",
-      score: "Not scored yet",
+      score: "60%",
       earned: false
     },
     {
@@ -41,7 +41,7 @@ const Certificates = () => {
       title: "Modality Test",
       completedDate: "Pending",
       activity: "Kinesthetic Innovator in Electronics",
-      score: "Not scored yet",
+      score: "60%",
       earned: false
     },
     {
@@ -49,7 +49,7 @@ const Certificates = () => {
       title: "Modality Test",
       completedDate: "Pending",
       activity: "Sound Scholar in Electronics",
-      score: "Not scored yet",
+      score: "60%",
       earned: false
     }
   ];
@@ -208,7 +208,7 @@ const Certificates = () => {
           <CardContent>
             <div className="flex items-center space-x-6">
               <div className="w-24 h-24 bg-pink-300 rounded-full flex items-center justify-center border-4 border-white">
-                <img src={childData.photo} alt={childData.name} className="w-20 h-20 rounded-full object-cover" />
+                {/* <img src={childData.photo} alt={childData.name} className="w-20 h-20 rounded-full object-cover" /> */}
               </div>
               <div className="flex-1">
                 <h3 className="text-2xl font-bold text-purple-800 mb-2">{childData.name}</h3>
@@ -310,7 +310,7 @@ const Certificates = () => {
           <Link to="/">
             <Button className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
               <Home className="mr-3 h-5 w-5" />
-              🏠 Back to Home
+              Back to Home
             </Button>
           </Link>
         </div>
