@@ -1,14 +1,50 @@
 
-import { Link } from "react-router-dom";
+
 import { Zap, Award, Star, Download, Home, Trophy, Medal, BookOpen, Target, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header.tsx";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Certificates = () => {
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const userName = currentUser.userName || 'User'; // fallback if missing
+  const isStudent = currentUser.role === 'STUDENT' || currentUser.role === 'USER';
+  const navigate = useNavigate(); // ⬅ Initialize navigate
+
+  const [showLowScorePopup, setShowLowScorePopup] = useState(false);
+  
+  // Fetch quiz results to trigger popup if needed
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (!isStudent || !token) return;
+
+    const fetchUserQuizTotals = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/v1/quizzes/results/percentages', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const userData = response.data.find(
+          (item: any) => item.userId === currentUser.userId
+        );
+
+        if (userData?.results?.some((res: string) => {
+          const percentage = parseFloat(res.split(" ")[1]) || 0;
+          return percentage <= 60;
+        })) {
+          setShowLowScorePopup(true);
+        }
+      } catch (error) {
+        console.error('Error fetching user quiz totals:', error);
+      }
+    };
+
+    fetchUserQuizTotals();
+  }, [isStudent, currentUser.userId]);
 
   const childData = {
     name: userName,
@@ -187,6 +223,27 @@ const Certificates = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-green-50">
+      {/* Popup for low score */}
+      {showLowScorePopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm text-center shadow-lg">
+            <h2 className="text-xl font-bold text-red-600 mb-4">⚠ Keep Practicing!</h2>
+            <p className="text-gray-700 mb-6">
+              You scored 60% or less in one of your modality tests. Try revisiting the activities to improve your skills!
+            </p>
+            <Button
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+              onClick={() => {
+                setShowLowScorePopup(false);
+                navigate("/dashboard"); // ⬅ Navigate to Dashboard
+              }}
+            >
+              OK, Got It!
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Navigation Bar */}
       <Header></Header>
 
