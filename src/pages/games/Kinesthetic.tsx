@@ -389,7 +389,7 @@ const Kinesthetic: React.FC = () => {
                                             className="w-32 h-32 object-contain mb-2"
                                             onError={() => console.error(`Failed to load image: ${item.imageUrl}`)}
                                         />
-                                        <p className="text-center font-medium">{item.text}</p>
+                                        <p className="text-center font-medium">{item.id}</p>
                                     </div>
                                 ))}
                                 <div
