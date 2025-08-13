@@ -451,12 +451,11 @@ const ReadWrite: React.FC = () => {
                                             // Find the rank assigned to this option (1-4), or ''
                                             const curOrder = typedAnswers[currentQuestionIndex] || '';
                                             let rank = '';
-                                            for (let i = 0; i < curOrder.length; i++) {
-                                                if (curOrder[i] === String(idx + 1)) {
-                                                    rank = String(i + 1);
-                                                    break;
-                                                }
+                                            const optionPosition = curOrder.indexOf(String(idx + 1));
+                                            if (optionPosition !== -1) {
+                                                rank = String(optionPosition + 1);
                                             }
+                                            
                                             return (
                                                 <div key={idx} className="flex items-center gap-3">
                                                     {/* Small square input to type order number */}
@@ -468,26 +467,38 @@ const ReadWrite: React.FC = () => {
                                                         placeholder=""
                                                         value={rank}
                                                         onChange={e => {
-                                                            let v = e.target.value.replace(/[^1-4]/g, '');
-                                                            let cur = typedAnswers[currentQuestionIndex] || '';
-                                                            // Remove this option from any previous rank
-                                                            let arr = cur.split('').filter(c => c !== String(idx + 1));
-                                                            if (v) {
-                                                                const pos = parseInt(v, 10) - 1;
-                                                                // Remove any option already assigned to this rank
-                                                                arr = arr.filter((_, i) => i !== pos);
-                                                                // Insert this option at the correct rank
-                                                                if (pos >= 0 && pos <= arr.length) {
-                                                                    arr.splice(pos, 0, String(idx + 1));
-                                                                } else {
-                                                                    arr.push(String(idx + 1));
-                                                                }
+                                                            const newRank = e.target.value.replace(/[^1-4]/g, '');
+                                                            const currentTypedOrder = typedAnswers[currentQuestionIndex] || '';
+                                                            let newOrder = currentTypedOrder.split('');
+                                                            
+                                                            // Remove this option from its current position
+                                                            const currentPos = newOrder.indexOf(String(idx + 1));
+                                                            if (currentPos !== -1) {
+                                                                newOrder.splice(currentPos, 1);
                                                             }
-                                                            // Normalize to max 4 digits
-                                                            arr = arr.slice(0, 4);
-                                                            const next = arr.join('');
+                                                            
+                                                            if (newRank) {
+                                                                const targetPos = parseInt(newRank) - 1;
+                                                                
+                                                                // Remove any existing option at the target position
+                                                                if (newOrder[targetPos]) {
+                                                                    newOrder.splice(targetPos, 1);
+                                                                }
+                                                                
+                                                                // Ensure array is large enough
+                                                                while (newOrder.length <= targetPos) {
+                                                                    newOrder.push('');
+                                                                }
+                                                                
+                                                                // Insert current option at target position
+                                                                newOrder[targetPos] = String(idx + 1);
+                                                            }
+                                                            
+                                                            // Clean up empty slots and join
+                                                            const cleanOrder = newOrder.filter(item => item !== '').join('');
+                                                            
                                                             const newTyped = [...typedAnswers];
-                                                            newTyped[currentQuestionIndex] = next;
+                                                            newTyped[currentQuestionIndex] = cleanOrder;
                                                             setTypedAnswers(newTyped);
                                                         }}
                                                         disabled={isCheckingAnswer}
@@ -505,6 +516,34 @@ const ReadWrite: React.FC = () => {
                                                 </div>
                                             );
                                         })}
+                                    </div>
+                                    
+                                    {/* Add a free-form input for direct order entry */}
+                                    <div className="mt-6">
+                                        <label className="block text-lg font-semibold text-purple-800 mb-2">
+                                            Or type the complete order directly (e.g., 4321):
+                                        </label>
+                                        <input
+                                            type="text"
+                                            maxLength={4}
+                                            className="w-full p-3 text-center border-2 border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-xl font-mono"
+                                            placeholder="Enter order like 4321"
+                                            value={typedAnswers[currentQuestionIndex] || ''}
+                                            onChange={e => {
+                                                const value = e.target.value.replace(/[^1-4]/g, '');
+                                                // Check for duplicate digits
+                                                const uniqueDigits = [...new Set(value.split(''))];
+                                                const cleanValue = uniqueDigits.join('');
+                                                
+                                                const newTyped = [...typedAnswers];
+                                                newTyped[currentQuestionIndex] = cleanValue;
+                                                setTypedAnswers(newTyped);
+                                            }}
+                                            disabled={isCheckingAnswer}
+                                        />
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            Use digits 1-4 only. Each digit can only be used once.
+                                        </p>
                                     </div>
                                 </div>
 
