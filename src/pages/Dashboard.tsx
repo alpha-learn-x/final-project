@@ -172,7 +172,7 @@ const Dashboard = () => {
     }, [userName, isTeacher, isStudent, currentUser.userId]);
 
     const filteredQuizResults = quizResults.filter((result) =>
-        result && result.quizName && result.quizName.toLowerCase().includes(searchQuery.toLowerCase())
+        result && result.username && result.username.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Pagination logic
@@ -342,7 +342,7 @@ const Dashboard = () => {
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500"/>
                                         <Input
                                             type="text"
-                                            placeholder="Search by quiz name..."
+                                            placeholder="Search by Student name..."
                                             value={searchQuery}
                                             onChange={(e) => {
                                                 setSearchQuery(e.target.value);

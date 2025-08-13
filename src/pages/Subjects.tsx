@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
 import { BookOpen, Calculator, Atom, Cpu, Battery, Lightbulb, Home, Volume2, VolumeX, HelpCircle, Award, Target, Users, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ const Subjects = () => {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isSoundEnabled, setIsSoundEnabled] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  
+  const navigate = useNavigate(); // ✅ Added navigate hook
 
   useEffect(() => {
     if (audioRef.current) {
@@ -43,7 +45,6 @@ const Subjects = () => {
       activities: 8,
       level: "Beginner",
       emoji: "💡"
-
     },
     {
       id: 2,
@@ -89,8 +90,8 @@ const Subjects = () => {
       level: "Advanced",
       emoji: "🧮"
     },
-     {
-      id: 5,
+    {
+      id: 6,
       title: "Aviation",
       description: "Discover the principles of flight, aerodynamics, and the science behind aviation.",
       icon: "✈️",
@@ -99,9 +100,7 @@ const Subjects = () => {
       activities: 25,
       level: "Advanced",
       emoji: "🚀"
-    },
-    
-    
+    }
   ];
 
   const getLevelColor = (level: string) => {
@@ -119,7 +118,6 @@ const Subjects = () => {
 
       {/* Navigation Bar */}
       <Header></Header>
-      {/* Navigation Bar */}
 
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
@@ -133,12 +131,12 @@ const Subjects = () => {
           </div>
           <p className="text-2xl text-white/90 max-w-4xl mx-auto font-semibold mb-8">
             📖 Pick a subject that excites you and start your amazing adventure! 
-             <br/> Each subject has fun activities, games, and cool experiments! 📖
+            <br/> Each subject has fun activities, games, and cool experiments! 📖
           </p>
           {/* Large Start Learning Button */}
           <Link to="/activities">
             <Button className="bg-blue-500 hover:bg-blue-600 text-white font-bold text-2xl px-16 py-6 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
-               START LEARNING NOW 
+              START LEARNING NOW 
             </Button>
           </Link>
         </div>
@@ -149,6 +147,7 @@ const Subjects = () => {
             <Card 
               key={subject.id} 
               className={`hover:shadow-2xl transition-all duration-500 cursor-pointer transform hover:scale-110 hover:rotate-1 bg-gradient-to-br from-white to-gray-50 border-4 ${subject.borderColor} relative overflow-hidden group`}
+              onClick={() => navigate("/activities")} // ✅ Use navigate on card click
             >
               {/* Floating emoji */}
               <div className="absolute top-3 right-3 text-3xl animate-bounce group-hover:animate-spin">
@@ -174,7 +173,7 @@ const Subjects = () => {
                 <p className="text-gray-700 mb-6 text-lg leading-relaxed">{subject.description}</p>
                 <Link to="/activities">
                   <Button className={`w-full bg-gradient-to-r ${subject.color} hover:shadow-xl text-white font-bold py-4 px-6 rounded-full text-lg transform hover:scale-105 transition-all duration-300`}>
-                     Start Learning Now!
+                    Start Learning Now!
                   </Button>
                 </Link>
               </CardContent>
@@ -186,41 +185,41 @@ const Subjects = () => {
           ))}
         </div>
 
-         {/* Enhanced Fun Stats Section */}
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 mb-12 border-4 border-purple-200">
-            <h3 className="text-4xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8">
-              🎊 Amazing Rewards Await You,🎊
-            </h3>
-            <div className="grid md:grid-cols-4 gap-6 text-center">
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-bounce">🎖️</div>
-                <div className="text-2xl font-bold text-purple-600">Cool Badges</div>
-                <div className="text-gray-600">Collect them all!</div>
-              </div>
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-pulse">📑</div>
-                <div className="text-2xl font-bold text-blue-600">Certificates</div>
-                <div className="text-gray-600">Play & Learn!</div>
-              </div>
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-spin">🧸</div>
-                <div className="text-2xl font-bold text-yellow-600">Cartoon Character</div>
-                <div className="text-gray-600">Level up!</div>
-              </div>
-              <div className="group hover:scale-110 transition-transform">
-                <div className="text-5xl mb-3 animate-bounce">🎁</div>
-                <div className="text-2xl font-bold text-green-600">Surprises</div>
-                <div className="text-gray-600">Hidden treasures!</div>
-              </div>
+        {/* Enhanced Fun Stats Section */}
+        <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-10 mb-12 border-4 border-purple-200">
+          <h3 className="text-4xl font-bold text-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-8">
+            🎊 Amazing Rewards Await You,🎊
+          </h3>
+          <div className="grid md:grid-cols-4 gap-6 text-center">
+            <div className="group hover:scale-110 transition-transform">
+              <div className="text-5xl mb-3 animate-bounce">🎖️</div>
+              <div className="text-2xl font-bold text-purple-600">Cool Badges</div>
+              <div className="text-gray-600">Collect them all!</div>
+            </div>
+            <div className="group hover:scale-110 transition-transform">
+              <div className="text-5xl mb-3 animate-pulse">📑</div>
+              <div className="text-2xl font-bold text-blue-600">Certificates</div>
+              <div className="text-gray-600">Play & Learn!</div>
+            </div>
+            <div className="group hover:scale-110 transition-transform">
+              <div className="text-5xl mb-3 animate-spin">🧸</div>
+              <div className="text-2xl font-bold text-yellow-600">Cartoon Character</div>
+              <div className="text-gray-600">Level up!</div>
+            </div>
+            <div className="group hover:scale-110 transition-transform">
+              <div className="text-5xl mb-3 animate-bounce">🎁</div>
+              <div className="text-2xl font-bold text-green-600">Surprises</div>
+              <div className="text-gray-600">Hidden treasures!</div>
             </div>
           </div>
+        </div>
 
         {/* Back to Home */}
         <div className="text-center mb-12">
           <Link to="/">
             <Button className="bg-gradient-to-r from-gray-600 to-gray-800 hover:from-gray-700 hover:to-gray-900 text-white px-8 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
               <Home className="mr-3 h-5 w-5" />
-               Back to Home
+              Back to Home
             </Button>
           </Link>
         </div>
